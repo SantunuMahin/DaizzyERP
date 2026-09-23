@@ -3,7 +3,7 @@ Sales history, details, cancellation, and returns views.
 """
 from django.views.generic import ListView, DetailView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from apps.core.mixins import RoleRequiredMixin
 from apps.core.permissions import UserRole

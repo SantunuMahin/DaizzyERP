@@ -27,7 +27,7 @@ class SteadfastCourierService:
     def get_config(cls):
         """Fetch courier configuration from database or settings."""
         try:
-            from .models import CourierConfig
+            from apps.sales.models import CourierConfig
             cfg = CourierConfig.objects.filter(courier_name='steadfast').first()
             if cfg:
                 return {
