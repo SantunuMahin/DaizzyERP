@@ -257,6 +257,12 @@ class Message(models.Model):
     def is_outbound(self):
         return self.direction == self.Direction.OUTBOUND
 
+    @property
+    def sender_name(self):
+        if self.sent_by:
+            return self.sent_by.get_full_name() or self.sent_by.username
+        return "Daizzy System"
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # MESSAGE TEMPLATE — Reusable message templates for bulk/quick replies

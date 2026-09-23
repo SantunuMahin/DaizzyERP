@@ -188,7 +188,7 @@
           {% if not msg.is_outbound %}
           <span class="msg-sender-label">{{ active_conv.contact.name }}</span>
           {% else %}
-          <span class="msg-sender-label" style="text-align:right;">{{ msg.sent_by.get_full_name|default:msg.sent_by.username|default:"You" }}</span>
+          <span class="msg-sender-label" style="text-align:right;">{{ msg.sender_name }}</span>
           {% endif %}
           <div class="msg-bubble">{{ msg.body }}</div>
           <div class="msg-time">

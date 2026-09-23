@@ -167,7 +167,7 @@
         {% endif %}
 
         <div style="border-top: 1px solid var(--border-subtle); margin-top: 14px; padding-top: 10px; font-size: 0.78rem; color: var(--text-muted);">
-          Cashier Operator: <strong>{{ sale.cashier.get_full_name|default:sale.cashier.username }}</strong>
+          Cashier Operator: <strong>{% if sale.cashier %}{{ sale.cashier.get_full_name|default:sale.cashier.username }}{% else %}Online Order / System{% endif %}</strong>
         </div>
       </div>
     </div>

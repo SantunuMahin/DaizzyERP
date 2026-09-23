@@ -200,7 +200,7 @@
         <div class="activity-body">
           <div class="activity-title" style="font-size:0.84rem;">{{ msg.body|truncatechars:80 }}</div>
           <div class="activity-meta">
-            {% if msg.is_outbound %}Sent by {{ msg.sent_by.username|default:"System" }}{% else %}Received{% endif %}
+            {% if msg.is_outbound %}Sent by {{ msg.sender_name }}{% else %}Received{% endif %}
             · {{ msg.created_at|date:"d M Y, H:i" }}
           </div>
         </div>

@@ -79,7 +79,7 @@
         <div>
           <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Logged By</span>
           <div style="font-size:0.95rem; font-weight:600; color:var(--text-main); margin-top:3px;">
-            {{ purchase.created_by.get_full_name|default:purchase.created_by.username|default:"System Admin" }}
+            {% if purchase.created_by %}{{ purchase.created_by.get_full_name|default:purchase.created_by.username }}{% else %}System Admin{% endif %}
           </div>
           <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
             Stock auto-incremented
