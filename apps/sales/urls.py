@@ -2,13 +2,14 @@
 Sales URLs router.
 """
 from django.urls import path
-from .views import SaleListView, SaleDetailView, SaleCancelView, ReturnListView, CourierSettingsView, SteadfastWebhookView
+from .views import SaleListView, SaleCreateView, SaleDetailView, SaleCancelView, ReturnListView, CourierSettingsView, SteadfastWebhookView
 from apps.messaging.views_order import SteadfastDispatchActionView, SteadfastStatusSyncActionView, SteadfastBalanceView
 
 app_name = 'sales'
 
 urlpatterns = [
     path('', SaleListView.as_view(), name='list'),
+    path('create/', SaleCreateView.as_view(), name='create'),
     path('<int:pk>/', SaleDetailView.as_view(), name='detail'),
     path('<int:pk>/cancel/', SaleCancelView.as_view(), name='cancel'),
     path('returns/', ReturnListView.as_view(), name='returns'),

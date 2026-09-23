@@ -1,0 +1,249 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Record Stock Purchase · {{ STORE_NAME|default:"Daizzy" }}{% endblock %}
+{% block page_heading %}New Stock Purchase Entry{% endblock %}
+
+{% block content %}
+<div style="max-width:1050px; margin:0 auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h1 style="font-size:1.45rem; font-weight:800; color:var(--text-main); font-family:var(--font-sans); margin:0;">
+        <span class="gradient-text">Procure Products</span> &amp; Stock In
+      </h1>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin:4px 0 0;">
+        Select products, enter supplier invoice and unit purchase prices. Inventory stock will automatically increase upon saving.
+      </p>
+    </div>
+    <a href="{% url 'purchases:list' %}" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-arrow-left"></i> Back to Purchases
+    </a>
+  </div>
+
+  <form method="post" id="purchase-form">
+    {% csrf_token %}
+
+    <!-- Top Card: Vendor & Invoice Details -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="border-bottom:1px solid var(--border-subtle); padding:16px 20px;">
+        <h3 class="card-title" style="display:flex; align-items:center; gap:8px;">
+          <i class="ph-bold ph-truck" style="color:var(--brand-primary);"></i> Supplier &amp; Invoice Information
+        </h3>
+      </div>
+      <div class="card-body" style="padding:20px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Supplier / Vendor Name *</label>
+            <input type="text" name="supplier_name" class="form-control" required placeholder="e.g. Dhaka Craft Wholesale or Artisan Mills">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Supplier Phone Number</label>
+            <input type="tel" name="supplier_phone" class="form-control" placeholder="e.g. +880 1711-234567">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Supplier Invoice / Challan #</label>
+            <input type="text" name="supplier_invoice" class="form-control" placeholder="e.g. INV-9042 or CH-102">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-top:6px;">
+          <div class="form-group">
+            <label class="form-label">Purchase / Receipt Date</label>
+            <input type="date" name="purchase_date" value="{{ today }}" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Paid Amount (৳)</label>
+            <input type="number" step="0.01" name="paid_amount" id="paid_amount" class="form-control" placeholder="0.00 (leave 0 if due)">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Procurement Remarks / Notes</label>
+            <input type="text" name="notes" class="form-control" placeholder="e.g. Batch #4 replenishment, urgent delivery">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Rows Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding:16px 20px;">
+        <h3 class="card-title" style="display:flex; align-items:center; gap:8px;">
+          <i class="ph-bold ph-package" style="color:#10B981;"></i> Products to Stock In
+        </h3>
+        <button type="button" class="btn btn-outline btn-sm" id="btn-add-row" style="color:var(--brand-primary); border-color:var(--brand-primary);">
+          <i class="ph-bold ph-plus"></i> Add Product
+        </button>
+      </div>
+
+      <div class="table-responsive" style="padding:4px 0;">
+        <table class="data-table" id="items-table">
+          <thead>
+            <tr>
+              <th style="width:42%;">Product</th>
+              <th style="width:18%;">Quantity (Units)</th>
+              <th style="width:20%;">Unit Purchase Cost (৳)</th>
+              <th style="width:15%; text-align:right;">Line Total</th>
+              <th style="width:5%; text-align:center;"></th>
+            </tr>
+          </thead>
+          <tbody id="items-tbody">
+            <!-- Row Template dynamically inserted -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Totals Footer -->
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 24px; background:rgba(15,20,42,0.9); border-top:1px solid var(--border-subtle); flex-wrap:wrap; gap:16px;">
+        <div>
+          <span style="font-size:0.85rem; color:var(--text-muted);">Total Products: <strong id="summary-items-count" style="color:var(--text-main);">0</strong></span>
+          <span style="margin:0 12px; color:var(--border-subtle);">|</span>
+          <span style="font-size:0.85rem; color:var(--text-muted);">Total Units: <strong id="summary-units-count" style="color:#38BDF8;">0 PCS</strong></span>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <span style="font-size:0.95rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Grand Total:</span>
+          <span style="font-size:1.5rem; font-weight:800; font-family:var(--font-mono); color:#10B981;" id="summary-grand-total">
+            {{ CURRENCY_SYMBOL }} 0.00
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Section -->
+    <div style="display:flex; justify-content:flex-end; gap:12px; margin-bottom:40px;">
+      <a href="{% url 'purchases:list' %}" class="btn btn-outline" style="padding:11px 22px;">Cancel</a>
+      <button type="submit" class="btn btn-primary" style="padding:11px 32px; font-weight:700; box-shadow:0 4px 18px rgba(124,58,237,0.4);">
+        <i class="ph-bold ph-floppy-disk"></i> Confirm &amp; Stock In
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Product options data for JS -->
+<script>
+  const catalogProducts = [
+    {% for p in products %}
+    {
+      id: {{ p.pk }},
+      name: "{{ p.name|escapejs }}",
+      sku: "{{ p.sku|escapejs }}",
+      barcode: "{{ p.barcode|escapejs }}",
+      cost_price: {{ p.cost_price|default:"0.00" }},
+      current_stock: {{ p.current_stock }},
+      unit: "{{ p.unit|default:'PCS'|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  function createProductOptions() {
+    let opts = '<option value="">-- Choose a Product --</option>';
+    catalogProducts.forEach(p => {
+      opts += `<option value="${p.id}" data-cost="${p.cost_price}" data-unit="${p.unit}" data-stock="${p.current_stock}">
+        ${p.name} (SKU: ${p.sku}) — Stock: ${p.current_stock} ${p.unit}
+      </option>`;
+    });
+    return opts;
+  }
+
+  function addRow(preselectedId = null) {
+    const tbody = document.getElementById('items-tbody');
+    const tr = document.createElement('tr');
+    tr.className = 'item-row';
+    tr.innerHTML = `
+      <td>
+        <select name="product_id[]" class="form-select product-select" required onchange="onProductChange(this)">
+          ${createProductOptions()}
+        </select>
+        <div class="row-stock-hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;"></div>
+      </td>
+      <td>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <input type="number" name="quantity[]" value="10" min="1" class="form-control row-qty" required oninput="recalcRow(this)" style="width:100px;">
+          <span class="row-unit" style="font-size:0.8rem; color:var(--text-muted);">PCS</span>
+        </div>
+      </td>
+      <td>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <input type="number" step="0.01" name="unit_cost_price[]" value="0.00" min="0" class="form-control row-cost" required oninput="recalcRow(this)" style="width:130px;">
+        </div>
+      </td>
+      <td style="text-align:right; font-family:var(--font-mono); font-weight:700; color:#FFFFFF; font-size:1.05rem;" class="row-total">
+        0.00
+      </td>
+      <td style="text-align:center;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="removeRow(this)" style="color:var(--danger-500); border-color:transparent; padding:6px 8px;" title="Remove row">
+          <i class="ph-bold ph-trash"></i>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+
+    if (preselectedId) {
+      const sel = tr.querySelector('.product-select');
+      sel.value = preselectedId;
+      onProductChange(sel);
+    }
+  }
+
+  function onProductChange(selectElem) {
+    const tr = selectElem.closest('tr');
+    const opt = selectElem.options[selectElem.selectedIndex];
+    const cost = opt.getAttribute('data-cost') || '0.00';
+    const unit = opt.getAttribute('data-unit') || 'PCS';
+    const stock = opt.getAttribute('data-stock') || '0';
+
+    tr.querySelector('.row-cost').value = cost;
+    tr.querySelector('.row-unit').innerText = unit;
+    tr.querySelector('.row-stock-hint').innerText = `Current inventory: ${stock} ${unit}`;
+    recalcRow(selectElem);
+  }
+
+  function recalcRow(elem) {
+    const tr = elem.closest('tr');
+    const qty = parseFloat(tr.querySelector('.row-qty').value) || 0;
+    const cost = parseFloat(tr.querySelector('.row-cost').value) || 0;
+    const total = qty * cost;
+    tr.querySelector('.row-total').innerText = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    recalcGrandTotal();
+  }
+
+  function removeRow(btn) {
+    const tbody = document.getElementById('items-tbody');
+    if (tbody.querySelectorAll('.item-row').length > 1) {
+      btn.closest('tr').remove();
+      recalcGrandTotal();
+    } else {
+      alert("At least one product item is required.");
+    }
+  }
+
+  function recalcGrandTotal() {
+    let grandTotal = 0;
+    let totalUnits = 0;
+    const rows = document.querySelectorAll('.item-row');
+
+    rows.forEach(tr => {
+      const qty = parseFloat(tr.querySelector('.row-qty').value) || 0;
+      const cost = parseFloat(tr.querySelector('.row-cost').value) || 0;
+      grandTotal += (qty * cost);
+      totalUnits += qty;
+    });
+
+    document.getElementById('summary-items-count').innerText = rows.length;
+    document.getElementById('summary-units-count').innerText = totalUnits.toLocaleString() + ' PCS';
+    document.getElementById('summary-grand-total').innerText = '{{ CURRENCY_SYMBOL }} ' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // Suggest paid amount if empty
+    const paidInput = document.getElementById('paid_amount');
+    if (!paidInput.value || paidInput.value === '0.00') {
+      paidInput.placeholder = grandTotal.toFixed(2);
+    }
+  }
+
+  // Initialize with 2 rows on load
+  document.addEventListener('DOMContentLoaded', () => {
+    addRow();
+    if (catalogProducts.length > 1) {
+      addRow();
+    }
+    document.getElementById('btn-add-row').addEventListener('click', () => addRow());
+  });
+</script>
+{% endblock %}

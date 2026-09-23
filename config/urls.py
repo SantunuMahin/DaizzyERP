@@ -18,6 +18,7 @@ urlpatterns = [
     path('users/', include('apps.users.urls', namespace='users')),
     path('products/', include('apps.products.urls', namespace='products')),
     path('inventory/', include('apps.inventory.urls', namespace='inventory')),
+    path('purchases/', include('apps.purchases.urls', namespace='purchases')),
     path('pos/', include('apps.pos.urls', namespace='pos')),
     path('sales/', include('apps.sales.urls', namespace='sales')),
     path('invoices/', include('apps.invoices.urls', namespace='invoices')),

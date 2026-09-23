@@ -53,6 +53,7 @@ LOCAL_APPS = [
     'apps.audit.apps.AuditConfig',
     'apps.api.apps.ApiConfig',
     'apps.messaging.apps.MessagingConfig',
+    'apps.purchases.apps.PurchasesConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

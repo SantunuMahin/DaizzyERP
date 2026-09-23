@@ -12,7 +12,7 @@
   <meta name="theme-color" content="#7C3AED">
 
   <!-- Icons & CSS -->
-  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.2">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=3.0">
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
   {% block extra_css %}{% endblock %}
@@ -71,6 +71,10 @@
 
         <!-- Catalog & Stock -->
         <div class="nav-section-title">Catalog &amp; Stock</div>
+        <a href="{% url 'purchases:list' %}" class="nav-link {% if 'purchases' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-shopping-bag-open nav-icon" style="color:#A78BFA;"></i>
+          <span>Stock Purchases</span>
+        </a>
         <a href="{% url 'products:list' %}" class="nav-link {% if 'products' in request.path and 'category' not in request.path %}active{% endif %}">
           <i class="ph-bold ph-tag nav-icon"></i>
           <span>Products Catalog</span>

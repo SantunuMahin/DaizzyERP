@@ -1,0 +1,155 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Purchase {{ purchase.purchase_number }} · {{ STORE_NAME|default:"Daizzy" }}{% endblock %}
+{% block page_heading %}Purchase Order {{ purchase.purchase_number }}{% endblock %}
+
+{% block content %}
+<div style="max-width:960px; margin:0 auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+    <div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <h1 style="font-size:1.5rem; font-weight:800; color:var(--text-main); font-family:var(--font-mono); margin:0;">
+          {{ purchase.purchase_number }}
+        </h1>
+        {% if purchase.payment_status == 'PAID' %}
+          <span class="badge badge-success"><i class="ph-bold ph-check"></i> Fully Paid</span>
+        {% elif purchase.payment_status == 'PARTIAL' %}
+          <span class="badge badge-warning">Partially Paid</span>
+        {% else %}
+          <span class="badge badge-danger">Payment Due</span>
+        {% endif %}
+      </div>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin:4px 0 0;">
+        Stock procurement goods received note · {{ purchase.purchase_date|date:"F d, Y" }}
+      </p>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <a href="{% url 'purchases:list' %}" class="btn btn-outline btn-sm">
+        <i class="ph-bold ph-arrow-left"></i> All Purchases
+      </a>
+      <button onclick="window.print()" class="btn btn-outline btn-sm">
+        <i class="ph-bold ph-printer"></i> Print Voucher
+      </button>
+      <a href="{% url 'purchases:create' %}" class="btn btn-primary btn-sm">
+        <i class="ph-bold ph-plus"></i> New Purchase
+      </a>
+    </div>
+  </div>
+
+  <!-- Summary Card -->
+  <div class="card" style="margin-bottom:24px;">
+    <div class="card-header" style="border-bottom:1px solid var(--border-subtle); padding:16px 22px;">
+      <h3 class="card-title"><i class="ph-bold ph-info" style="color:var(--brand-primary);"></i> Procurement Overview</h3>
+    </div>
+    <div class="card-body" style="padding:22px;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:20px;">
+        <div>
+          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Supplier / Vendor</span>
+          <div style="font-size:1.1rem; font-weight:700; color:var(--text-main); margin-top:3px;">{{ purchase.supplier_name }}</div>
+          {% if purchase.supplier_phone %}
+          <div style="font-size:0.82rem; color:var(--text-muted); margin-top:2px; font-family:var(--font-mono);">
+            <i class="ph-bold ph-phone" style="margin-right:4px;"></i> {{ purchase.supplier_phone }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div>
+          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Supplier Invoice Ref</span>
+          <div style="font-size:1rem; font-weight:700; color:#38BDF8; font-family:var(--font-mono); margin-top:3px;">
+            {{ purchase.supplier_invoice|default:"N/A" }}
+          </div>
+          <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">
+            Received: {{ purchase.created_at|date:"d M Y, h:i A" }}
+          </div>
+        </div>
+
+        <div>
+          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Payment Breakdown</span>
+          <div style="font-size:1rem; font-weight:700; color:#10B981; margin-top:3px; font-family:var(--font-mono);">
+            Paid: {{ CURRENCY_SYMBOL }} {{ purchase.paid_amount|intcomma }}
+          </div>
+          {% if purchase.due_amount > 0 %}
+          <div style="font-size:0.85rem; font-weight:700; color:#EF4444; margin-top:2px; font-family:var(--font-mono);">
+            Due: {{ CURRENCY_SYMBOL }} {{ purchase.due_amount|intcomma }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div>
+          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Logged By</span>
+          <div style="font-size:0.95rem; font-weight:600; color:var(--text-main); margin-top:3px;">
+            {{ purchase.created_by.get_full_name|default:purchase.created_by.username|default:"System Admin" }}
+          </div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+            Stock auto-incremented
+          </div>
+        </div>
+      </div>
+
+      {% if purchase.notes %}
+      <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--border-subtle); font-size:0.85rem; color:var(--text-muted);">
+        <strong style="color:var(--text-main);">Notes / Terms:</strong> {{ purchase.notes }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Items Table -->
+  <div class="card">
+    <div class="card-header" style="border-bottom:1px solid var(--border-subtle); padding:16px 22px;">
+      <h3 class="card-title"><i class="ph-bold ph-list-numbers" style="color:#10B981;"></i> Procured Product Lines</h3>
+    </div>
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Product Description</th>
+            <th>SKU</th>
+            <th style="text-align:center;">Quantity</th>
+            <th style="text-align:right;">Unit Cost Price</th>
+            <th style="text-align:right;">Line Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td>
+              <a href="{% url 'products:detail' item.product.pk %}" style="font-weight:700; color:var(--text-main);">
+                {{ item.product_name }}
+              </a>
+              <div style="font-size:0.75rem; color:var(--text-muted);">
+                Current in-stock: {{ item.product.current_stock }} {{ item.product.unit|default:"PCS" }}
+              </div>
+            </td>
+            <td><code style="font-family:var(--font-mono); font-size:0.83rem;">{{ item.product_sku }}</code></td>
+            <td style="text-align:center; font-family:var(--font-mono); font-weight:700; color:#38BDF8; font-size:1rem;">
+              {{ item.quantity }}
+            </td>
+            <td style="text-align:right; font-family:var(--font-mono); font-weight:600; color:var(--text-main);">
+              {{ CURRENCY_SYMBOL }} {{ item.unit_cost_price|intcomma }}
+            </td>
+            <td style="text-align:right; font-family:var(--font-mono); font-weight:700; font-size:1.05rem; color:#FFFFFF;">
+              {{ CURRENCY_SYMBOL }} {{ item.subtotal|intcomma }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr style="background:rgba(15,20,42,0.9); font-weight:700;">
+            <td colspan="2" style="padding:18px 24px; font-size:0.95rem; color:var(--text-muted); text-transform:uppercase;">
+              Total Volume: <strong style="color:#38BDF8;">{{ purchase.total_quantity }} PCS</strong>
+            </td>
+            <td colspan="3" style="text-align:right; padding:18px 24px;">
+              <span style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase; margin-right:12px;">Grand Total Purchase Cost:</span>
+              <span style="font-size:1.45rem; font-weight:800; font-family:var(--font-mono); color:#10B981;">
+                {{ CURRENCY_SYMBOL }} {{ purchase.total_amount|intcomma }}
+              </span>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

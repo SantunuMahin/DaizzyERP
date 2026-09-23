@@ -31,15 +31,14 @@ class CourierAndAutoMessagingTestCase(TestCase):
             sku='EAR-PRO-001',
             barcode='8941234567890',
             cost_price=Decimal('1200.00'),
-            current_price=Decimal('1850.00'),
+            selling_price=Decimal('1850.00'),
             category=self.category,
             is_active=True
         )
 
         self.inventory = Inventory.objects.create(
             product=self.product,
-            quantity=50,
-            reorder_threshold=5
+            quantity=50
         )
 
         self.contact = Contact.objects.create(

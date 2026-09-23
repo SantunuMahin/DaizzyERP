@@ -1,0 +1,309 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Create Sales Order · {{ STORE_NAME|default:"Daizzy" }}{% endblock %}
+{% block page_heading %}New Sales &amp; Delivery Order{% endblock %}
+
+{% block content %}
+<div style="max-width:1080px; margin:0 auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h1 style="font-size:1.45rem; font-weight:800; color:var(--text-main); font-family:var(--font-sans); margin:0;">
+        <span class="gradient-text">New Order</span> &amp; Courier Dispatch
+      </h1>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin:4px 0 0;">
+        Create an online or delivery order. Selecting Steadfast Courier will immediately book the parcel with your Steadfast Merchant Account and generate a live tracking number.
+      </p>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <a href="{% url 'sales:list' %}" class="btn btn-outline btn-sm">
+        <i class="ph-bold ph-arrow-left"></i> All Orders
+      </a>
+      <a href="{% url 'sales:courier_settings' %}" class="btn btn-outline btn-sm">
+        <i class="ph-bold ph-gear"></i> Courier Settings
+      </a>
+    </div>
+  </div>
+
+  <form method="post" id="order-create-form">
+    {% csrf_token %}
+
+    <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:20px; align-items:start;">
+      
+      <!-- Left Column: Customer & Products -->
+      <div>
+        <!-- Customer & Delivery Card -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header" style="border-bottom:1px solid var(--border-subtle); padding:16px 20px;">
+            <h3 class="card-title" style="display:flex; align-items:center; gap:8px;">
+              <i class="ph-bold ph-user" style="color:var(--brand-primary);"></i> Customer &amp; Destination Details
+            </h3>
+          </div>
+          <div class="card-body" style="padding:20px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Customer Name *</label>
+                <input type="text" name="customer_name" class="form-control" required placeholder="e.g. Mahin Ahmed" autocomplete="name">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Phone Number *</label>
+                <input type="tel" name="customer_phone" class="form-control" required placeholder="e.g. 01700000000" autocomplete="tel">
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Email Address (Optional)</label>
+                <input type="email" name="customer_email" class="form-control" placeholder="customer@example.com" autocomplete="email">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Sales / Order Channel</label>
+                <select name="order_channel" class="form-select">
+                  {% for code, label in channels %}
+                  <option value="{{ code }}" {% if code == 'ONLINE' %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Delivery Address *</label>
+              <textarea name="delivery_address" rows="2" class="form-control" required placeholder="Full street address, area, district (e.g. House 24, Road 7, Sector 4, Uttara, Dhaka)"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Delivery Instructions / Courier Note</label>
+              <input type="text" name="delivery_notes" class="form-control" placeholder="e.g. Call before delivery, handle with care">
+            </div>
+          </div>
+        </div>
+
+        <!-- Products Selection Card -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding:16px 20px;">
+            <h3 class="card-title" style="display:flex; align-items:center; gap:8px;">
+              <i class="ph-bold ph-shopping-cart" style="color:#10B981;"></i> Order Items
+            </h3>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-add-item" style="color:var(--brand-primary); border-color:var(--brand-primary);">
+              <i class="ph-bold ph-plus"></i> Add Item
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="order-items-table">
+              <thead>
+                <tr>
+                  <th style="width:45%;">Product</th>
+                  <th style="width:18%;">Quantity</th>
+                  <th style="width:20%;">Price (৳)</th>
+                  <th style="width:17%; text-align:right;">Total</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="order-items-tbody">
+                <!-- Rows injected dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Courier Dispatch & Payment Summary -->
+      <div>
+        
+        <!-- Steadfast Courier Box -->
+        <div class="card" style="margin-bottom:20px; border:1px solid rgba(124,58,237,0.35); background:radial-gradient(ellipse at top, rgba(124,58,237,0.12), var(--bg-surface) 75%);">
+          <div class="card-header" style="border-bottom:1px solid rgba(124,58,237,0.2); padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+            <h3 class="card-title" style="display:flex; align-items:center; gap:8px; font-size:1.05rem; color:#A78BFA;">
+              <i class="ph-bold ph-truck"></i> Steadfast Courier
+            </h3>
+            <span class="badge badge-brand" style="font-size:0.75rem;">Instant Booking</span>
+          </div>
+          <div class="card-body" style="padding:20px;">
+            <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer; margin-bottom:16px; background:rgba(124,58,237,0.15); padding:12px 14px; border-radius:var(--radius-md); border:1px solid rgba(124,58,237,0.3);">
+              <input type="checkbox" name="dispatch_courier" id="dispatch_courier" checked style="width:20px; height:20px; margin-top:2px; accent-color:var(--brand-primary);">
+              <div>
+                <strong style="color:#FFFFFF; font-size:0.92rem; display:block;">Send to Steadfast Courier</strong>
+                <span style="font-size:0.78rem; color:#CBD5E1; display:block; margin-top:2px;">
+                  Instantly creates consignment, assigns tracking number, and pushes parcel to your Steadfast Merchant Account.
+                </span>
+              </div>
+            </label>
+
+            <div style="background:rgba(15,20,42,0.7); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:0.8rem; color:var(--text-muted);">Steadfast Integration:</span>
+                <span style="font-size:0.8rem; font-weight:700; color:#10B981;"><i class="ph-bold ph-check-circle"></i> Connected</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:0.8rem; color:var(--text-muted);">COD Collection Amount:</span>
+                <strong style="font-size:0.95rem; font-family:var(--font-mono); color:#38BDF8;" id="cod-preview-amount">
+                  {{ CURRENCY_SYMBOL }} 0.00
+                </strong>
+              </div>
+              <div style="font-size:0.74rem; color:var(--text-muted); line-height:1.4;">
+                Customer tracking SMS/WhatsApp notification will be triggered automatically upon dispatch.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment & Checkout Card -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header" style="border-bottom:1px solid var(--border-subtle); padding:16px 20px;">
+            <h3 class="card-title"><i class="ph-bold ph-credit-card" style="color:#10B981;"></i> Payment Settlement</h3>
+          </div>
+          <div class="card-body" style="padding:20px;">
+            <div class="form-group">
+              <label class="form-label">Payment Method</label>
+              <select name="payment_method" class="form-select" id="payment_method" onchange="onPaymentMethodChange(this)">
+                {% for code, label in payment_methods %}
+                <option value="{{ code }}" {% if code == 'COD' %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Amount Paid Upfront (৳)</label>
+              <input type="number" step="0.01" name="amount_paid" id="amount_paid" value="0.00" class="form-control" oninput="recalcOrderTotals()">
+              <small style="font-size:0.74rem; color:var(--text-muted); margin-top:4px;">For Cash-on-Delivery, leave 0.00. Remaining balance becomes COD.</small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Internal Order Notes</label>
+              <input type="text" name="notes" class="form-control" placeholder="Order memo or customer remarks">
+            </div>
+
+            <div style="background:rgba(15,20,42,0.9); border-radius:var(--radius-md); padding:16px; margin-top:14px; border:1px solid var(--border-subtle);">
+              <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.88rem; color:var(--text-muted);">
+                <span>Subtotal:</span>
+                <span id="order-subtotal" style="font-family:var(--font-mono); color:var(--text-main);">{{ CURRENCY_SYMBOL }} 0.00</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; padding-top:8px; border-top:1px solid var(--border-subtle); font-size:1.1rem; font-weight:800;">
+                <span style="color:#FFFFFF;">Grand Total:</span>
+                <span id="order-grand-total" style="font-family:var(--font-mono); color:#10B981;">{{ CURRENCY_SYMBOL }} 0.00</span>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%; margin-top:20px; padding:13px; font-size:1rem; font-weight:700; box-shadow:0 4px 20px rgba(124,58,237,0.45);">
+              <i class="ph-bold ph-paper-plane-tilt"></i> Confirm &amp; Dispatch Order
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </form>
+</div>
+
+<script>
+  const catalogProducts = [
+    {% for p in products %}
+    {
+      id: {{ p.pk }},
+      name: "{{ p.name|escapejs }}",
+      sku: "{{ p.sku|escapejs }}",
+      price: {{ p.selling_price|default:"0.00" }},
+      stock: {{ p.current_stock }},
+      unit: "{{ p.unit|default:'PCS'|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  function getProductOptions() {
+    let html = '<option value="">-- Choose Product --</option>';
+    catalogProducts.forEach(p => {
+      html += `<option value="${p.id}" data-price="${p.price}" data-stock="${p.stock}">
+        ${p.name} (৳ ${p.price}) [Stock: ${p.stock}]
+      </option>`;
+    });
+    return html;
+  }
+
+  function addOrderItem() {
+    const tbody = document.getElementById('order-items-tbody');
+    const tr = document.createElement('tr');
+    tr.className = 'order-row';
+    tr.innerHTML = `
+      <td>
+        <select name="product_id[]" class="form-select order-prod-select" required onchange="onOrderItemChange(this)">
+          ${getProductOptions()}
+        </select>
+        <div class="row-stock-hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;"></div>
+      </td>
+      <td>
+        <input type="number" name="quantity[]" value="1" min="1" class="form-control row-qty" required oninput="recalcRow(this)" style="width:85px;">
+      </td>
+      <td>
+        <input type="number" step="0.01" name="unit_price[]" value="0.00" min="0" class="form-control row-price" required oninput="recalcRow(this)" style="width:110px;">
+      </td>
+      <td style="text-align:right; font-family:var(--font-mono); font-weight:700; color:#FFFFFF; font-size:1rem;" class="row-total">
+        0.00
+      </td>
+      <td style="text-align:center;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="removeOrderItem(this)" style="color:var(--danger-500); border-color:transparent; padding:6px 8px;">
+          <i class="ph-bold ph-trash"></i>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  function onOrderItemChange(selectElem) {
+    const tr = selectElem.closest('tr');
+    const opt = selectElem.options[selectElem.selectedIndex];
+    const price = opt.getAttribute('data-price') || '0.00';
+    const stock = opt.getAttribute('data-stock') || '0';
+
+    tr.querySelector('.row-price').value = price;
+    tr.querySelector('.row-stock-hint').innerText = `Warehouse Stock: ${stock} units`;
+    recalcRow(selectElem);
+  }
+
+  function recalcRow(elem) {
+    const tr = elem.closest('tr');
+    const qty = parseFloat(tr.querySelector('.row-qty').value) || 0;
+    const price = parseFloat(tr.querySelector('.row-price').value) || 0;
+    const total = qty * price;
+    tr.querySelector('.row-total').innerText = total.toFixed(2);
+    recalcOrderTotals();
+  }
+
+  function removeOrderItem(btn) {
+    const tbody = document.getElementById('order-items-tbody');
+    if (tbody.querySelectorAll('.order-row').length > 1) {
+      btn.closest('tr').remove();
+      recalcOrderTotals();
+    } else {
+      alert("At least one product item is required.");
+    }
+  }
+
+  function recalcOrderTotals() {
+    let grandTotal = 0;
+    document.querySelectorAll('.order-row').forEach(tr => {
+      const qty = parseFloat(tr.querySelector('.row-qty').value) || 0;
+      const price = parseFloat(tr.querySelector('.row-price').value) || 0;
+      grandTotal += (qty * price);
+    });
+
+    const paid = parseFloat(document.getElementById('amount_paid').value) || 0;
+    const cod = Math.max(0, grandTotal - paid);
+
+    document.getElementById('order-subtotal').innerText = '{{ CURRENCY_SYMBOL }} ' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById('order-grand-total').innerText = '{{ CURRENCY_SYMBOL }} ' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById('cod-preview-amount').innerText = '{{ CURRENCY_SYMBOL }} ' + cod.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function onPaymentMethodChange(sel) {
+    if (sel.value === 'COD') {
+      document.getElementById('amount_paid').value = '0.00';
+      recalcOrderTotals();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    addOrderItem();
+    document.getElementById('btn-add-item').addEventListener('click', addOrderItem);
+  });
+</script>
+{% endblock %}

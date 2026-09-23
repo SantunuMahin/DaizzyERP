@@ -1,0 +1,227 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Stock Purchases &amp; Procurement · {{ STORE_NAME|default:"Daizzy" }}{% endblock %}
+{% block page_heading %}Stock Purchases &amp; Procurement{% endblock %}
+
+{% block content %}
+<!-- Header Bar -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:14px;">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:800; color:var(--text-main); font-family:var(--font-sans); margin:0;">
+      <span class="gradient-text">Stock Purchases</span> &amp; Inflows
+    </h1>
+    <p style="font-size:0.85rem; color:var(--text-muted); margin:4px 0 0;">
+      Procure products, record vendor invoices, track purchase costs, and monitor replenishment spend.
+    </p>
+  </div>
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    <a href="{% url 'purchases:analysis' %}" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-chart-line-up"></i> Purchase vs Selling Margin
+    </a>
+    <a href="{% url 'purchases:create' %}" class="btn btn-primary btn-sm" style="box-shadow: 0 4px 16px rgba(124,58,237,0.35);">
+      <i class="ph-bold ph-plus-circle"></i> New Stock Purchase
+    </a>
+  </div>
+</div>
+
+<!-- KPI Metric Cards Grid -->
+<div class="metrics-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:18px; margin-bottom:24px;">
+  
+  <!-- Total Lifetime Purchases -->
+  <div class="metric-card" style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:20px; position:relative; overflow:hidden;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Total Purchases Value</div>
+        <div style="font-size:1.6rem; font-weight:800; color:#FFFFFF; margin-top:8px; font-family:var(--font-mono);">
+          {{ CURRENCY_SYMBOL }} {{ kpis.total_spend|intcomma }}
+        </div>
+        <div style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">
+          {{ kpis.total_orders|intcomma }} total purchase orders
+        </div>
+      </div>
+      <div style="width:42px; height:42px; border-radius:var(--radius-md); background:linear-gradient(135deg, rgba(124,58,237,0.3), rgba(124,58,237,0.1)); border:1px solid rgba(124,58,237,0.3); display:flex; align-items:center; justify-content:center; color:#A78BFA; font-size:1.3rem;">
+        <i class="ph-bold ph-wallet"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's Purchases -->
+  <div class="metric-card" style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:20px; position:relative; overflow:hidden;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div style="font-size:0.75rem; font-weight:700; color:#10B981; text-transform:uppercase; letter-spacing:0.06em;">Today's Purchases</div>
+        <div style="font-size:1.6rem; font-weight:800; color:#34D399; margin-top:8px; font-family:var(--font-mono);">
+          {{ CURRENCY_SYMBOL }} {{ kpis.today_spend|intcomma }}
+        </div>
+        <div style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">
+          {{ kpis.today_count }} orders received today
+        </div>
+      </div>
+      <div style="width:42px; height:42px; border-radius:var(--radius-md); background:linear-gradient(135deg, rgba(16,185,129,0.3), rgba(16,185,129,0.1)); border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; color:#10B981; font-size:1.3rem;">
+        <i class="ph-bold ph-calendar-check"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- This Month's Purchases -->
+  <div class="metric-card" style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:20px; position:relative; overflow:hidden;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div style="font-size:0.75rem; font-weight:700; color:#38BDF8; text-transform:uppercase; letter-spacing:0.06em;">This Month's Purchases</div>
+        <div style="font-size:1.6rem; font-weight:800; color:#38BDF8; margin-top:8px; font-family:var(--font-mono);">
+          {{ CURRENCY_SYMBOL }} {{ kpis.this_month_spend|intcomma }}
+        </div>
+        <div style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">
+          {{ kpis.this_month_count }} procurement batches
+        </div>
+      </div>
+      <div style="width:42px; height:42px; border-radius:var(--radius-md); background:linear-gradient(135deg, rgba(6,182,212,0.3), rgba(6,182,212,0.1)); border:1px solid rgba(6,182,212,0.3); display:flex; align-items:center; justify-content:center; color:#38BDF8; font-size:1.3rem;">
+        <i class="ph-bold ph-calendar-star"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Procured Units -->
+  <div class="metric-card" style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:20px; position:relative; overflow:hidden;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div style="font-size:0.75rem; font-weight:700; color:#F59E0B; text-transform:uppercase; letter-spacing:0.06em;">Total Units Stocked</div>
+        <div style="font-size:1.6rem; font-weight:800; color:#FBBF24; margin-top:8px; font-family:var(--font-mono);">
+          {{ kpis.total_units|intcomma }} <span style="font-size:0.95rem; font-weight:600; color:var(--text-muted);">PCS</span>
+        </div>
+        <div style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">
+          From {{ kpis.suppliers_count }} distinct suppliers
+        </div>
+      </div>
+      <div style="width:42px; height:42px; border-radius:var(--radius-md); background:linear-gradient(135deg, rgba(245,158,11,0.3), rgba(245,158,11,0.1)); border:1px solid rgba(245,158,11,0.3); display:flex; align-items:center; justify-content:center; color:#F59E0B; font-size:1.3rem;">
+        <i class="ph-bold ph-package"></i>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Filter & Search Card -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+    <!-- Period Tabs -->
+    <div style="display:flex; gap:8px; background:rgba(15,20,42,0.8); padding:4px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
+      <a href="?period=all{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-sm {% if period_filter == 'all' or not period_filter %}btn-primary{% else %}btn-outline{% endif %}" style="border:none;">
+        All History
+      </a>
+      <a href="?period=today{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-sm {% if period_filter == 'today' %}btn-primary{% else %}btn-outline{% endif %}" style="border:none;">
+        <i class="ph-bold ph-sun"></i> Today
+      </a>
+      <a href="?period=this_month{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-sm {% if period_filter == 'this_month' %}btn-primary{% else %}btn-outline{% endif %}" style="border:none;">
+        <i class="ph-bold ph-calendar"></i> This Month
+      </a>
+    </div>
+
+    <!-- Search & Status Filter -->
+    <form method="get" action="" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      {% if period_filter and period_filter != 'all' %}
+      <input type="hidden" name="period" value="{{ period_filter }}">
+      {% endif %}
+      <input type="text" name="q" value="{{ q }}" placeholder="Search PO #, supplier, invoice..." class="form-control" style="width:240px; padding:7px 12px; font-size:0.85rem;">
+      <select name="status" class="form-select" onchange="this.form.submit()" style="width:140px; padding:7px 12px; font-size:0.85rem;">
+        <option value="">All Statuses</option>
+        <option value="PAID" {% if status_filter == 'PAID' %}selected{% endif %}>Fully Paid</option>
+        <option value="PARTIAL" {% if status_filter == 'PARTIAL' %}selected{% endif %}>Partial</option>
+        <option value="DUE" {% if status_filter == 'DUE' %}selected{% endif %}>Due</option>
+      </select>
+      <button type="submit" class="btn btn-outline btn-sm">Filter</button>
+      {% if q or status_filter %}
+      <a href="{% url 'purchases:list' %}" class="btn btn-outline btn-sm" style="color:var(--danger-500);">Reset</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Purchases Table -->
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>PO / Invoice #</th>
+          <th>Purchase Date</th>
+          <th>Supplier</th>
+          <th>Procured Items</th>
+          <th style="text-align:center;">Total Qty</th>
+          <th style="text-align:right;">Total Amount</th>
+          <th style="text-align:center;">Payment</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for purchase in purchases %}
+        <tr>
+          <td>
+            <a href="{% url 'purchases:detail' purchase.pk %}" style="font-weight:700; font-family:var(--font-mono); color:#A78BFA;">
+              {{ purchase.purchase_number }}
+            </a>
+            {% if purchase.supplier_invoice %}
+            <div style="font-size:0.74rem; color:var(--text-muted);">Ref: {{ purchase.supplier_invoice }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <div style="font-weight:600; color:var(--text-main);">{{ purchase.purchase_date|date:"d M Y" }}</div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">{{ purchase.created_at|date:"h:i A" }}</div>
+          </td>
+          <td>
+            <strong style="color:var(--text-main);">{{ purchase.supplier_name }}</strong>
+            {% if purchase.supplier_phone %}
+            <div style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">{{ purchase.supplier_phone }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex; flex-wrap:wrap; gap:4px; max-width:320px;">
+              {% for it in purchase.items.all|slice:":3" %}
+              <span style="font-size:0.73rem; background:rgba(255,255,255,0.06); padding:2px 7px; border-radius:4px; color:#CBD5E1; border:1px solid rgba(255,255,255,0.08);">
+                {{ it.product_name }} ({{ it.quantity }})
+              </span>
+              {% endfor %}
+              {% if purchase.items.count > 3 %}
+              <span style="font-size:0.73rem; color:var(--brand-primary); font-weight:600;">+{{ purchase.items.count|add:"-3" }} more</span>
+              {% endif %}
+            </div>
+          </td>
+          <td style="text-align:center; font-family:var(--font-mono); font-weight:700; color:#38BDF8;">
+            {{ purchase.total_quantity }} PCS
+          </td>
+          <td style="text-align:right; font-family:var(--font-mono); font-weight:800; font-size:1rem; color:#FFFFFF;">
+            {{ CURRENCY_SYMBOL }} {{ purchase.total_amount|intcomma }}
+          </td>
+          <td style="text-align:center;">
+            {% if purchase.payment_status == 'PAID' %}
+              <span class="badge badge-success"><i class="ph-bold ph-check"></i> Paid</span>
+            {% elif purchase.payment_status == 'PARTIAL' %}
+              <span class="badge badge-warning">Partial</span>
+            {% else %}
+              <span class="badge badge-danger">Due</span>
+            {% endif %}
+          </td>
+          <td style="text-align:right;">
+            <a href="{% url 'purchases:detail' purchase.pk %}" class="btn btn-outline btn-sm" title="View Purchase Order Details">
+              <i class="ph-bold ph-receipt"></i> Details
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" style="text-align:center; padding:48px 20px; color:var(--text-muted);">
+            <div style="font-size:2.4rem; color:rgba(255,255,255,0.15); margin-bottom:10px;">
+              <i class="ph-bold ph-package"></i>
+            </div>
+            <p style="font-size:1rem; font-weight:600; color:var(--text-main); margin-bottom:4px;">No purchase records found</p>
+            <p style="font-size:0.85rem; margin-bottom:16px;">Record stock purchases to track supplier costs, inventory inflows, and margins.</p>
+            <a href="{% url 'purchases:create' %}" class="btn btn-primary btn-sm">
+              <i class="ph-bold ph-plus-circle"></i> Create First Purchase
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
