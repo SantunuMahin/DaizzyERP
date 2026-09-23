@@ -4,74 +4,118 @@
 {% block page_heading %}Enterprise Store Configuration{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 840px; margin: 0 auto;">
-  <div class="card-header">
-    <h3 class="card-title">Commercial Branding & Hardware Parameters</h3>
+<div class="card" style="max-width: 880px; margin: 0 auto; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);">
+  <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 40px; height: 40px; border-radius: var(--radius-md); background: linear-gradient(135deg, #7C3AED, #06B6D4); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 1.25rem;">
+        <i class="ph-bold ph-sliders"></i>
+      </div>
+      <div>
+        <h3 class="card-title" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #FFFFFF;">Commercial Branding &amp; Hardware Parameters</h3>
+        <p style="margin: 2px 0 0; font-size: 0.8rem; color: var(--text-muted);">Manage business identity, fiscal tax settings, thermal receipt dimensions, and barcode strategy.</p>
+      </div>
+    </div>
+    <span class="badge badge-success" style="font-size: 0.78rem; padding: 6px 12px;">
+      <i class="ph-bold ph-check-circle"></i> Operational
+    </span>
   </div>
-  <div class="card-body">
+
+  <div class="card-body" style="padding: 24px;">
+    {% if form.errors %}
+      <div style="margin-bottom: 20px; padding: 14px 18px; border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #FCA5A5;">
+        <strong style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+          <i class="ph-bold ph-warning-circle"></i> Please resolve the following configuration errors:
+        </strong>
+        <ul style="margin: 0; padding-left: 20px; font-size: 0.85rem;">
+          {% for field, errors in form.errors.items %}
+            <li><strong>{{ field|title }}:</strong> {{ errors|join:", " }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
     <form method="post" action="">
       {% csrf_token %}
 
-      <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--slate-800); margin-bottom: 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
-        1. Store Branding & Identity
+      <!-- Section 1: Store Branding & Identity -->
+      <h4 class="form-section-title">
+        <i class="ph-bold ph-storefront" style="color: var(--brand-primary); font-size: 1.1rem;"></i>
+        1. Store Branding &amp; Identity
       </h4>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
         <div class="form-group">
-          <label class="form-label">Store Legal / Display Name</label>
+          <label class="form-label"><i class="ph-bold ph-tag" style="margin-right: 4px;"></i> Store Legal / Display Name</label>
           {{ form.store_name }}
+          {% if form.store_name.errors %}<small style="color: #F87171; font-size: 0.78rem;">{{ form.store_name.errors.0 }}</small>{% endif %}
         </div>
         <div class="form-group">
-          <label class="form-label">Support Email</label>
+          <label class="form-label"><i class="ph-bold ph-envelope-simple" style="margin-right: 4px;"></i> Support Email</label>
           {{ form.email }}
+          {% if form.email.errors %}<small style="color: #F87171; font-size: 0.78rem;">{{ form.email.errors.0 }}</small>{% endif %}
         </div>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        <div class="form-group">
-          <label class="form-label">Store Phone Number</label>
-          {{ form.phone }}
-        </div>
-        <div class="form-group">
-          <label class="form-label">Store Website URL</label>
-          {{ form.website }}
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Store Physical Address</label>
-        {{ form.store_address }}
       </div>
 
-      <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--slate-800); margin: 24px 0 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
-        2. Commercial & Fiscal Policy
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+        <div class="form-group">
+          <label class="form-label"><i class="ph-bold ph-phone" style="margin-right: 4px;"></i> Store Phone Number</label>
+          {{ form.phone }}
+          {% if form.phone.errors %}<small style="color: #F87171; font-size: 0.78rem;">{{ form.phone.errors.0 }}</small>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label"><i class="ph-bold ph-globe" style="margin-right: 4px;"></i> Store Website URL</label>
+          {{ form.website }}
+          {% if form.website.errors %}<small style="color: #F87171; font-size: 0.78rem;">{{ form.website.errors.0 }}</small>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label"><i class="ph-bold ph-map-pin" style="margin-right: 4px;"></i> Store Physical Address</label>
+        {{ form.store_address }}
+        {% if form.store_address.errors %}<small style="color: #F87171; font-size: 0.78rem;">{{ form.store_address.errors.0 }}</small>{% endif %}
+      </div>
+
+      <!-- Section 2: Commercial & Fiscal Policy -->
+      <h4 class="form-section-title">
+        <i class="ph-bold ph-coins" style="color: #10B981; font-size: 1.1rem;"></i>
+        2. Commercial &amp; Fiscal Policy
       </h4>
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
         <div class="form-group">
           <label class="form-label">Currency Code</label>
           {{ form.currency }}
+          {% if form.currency.errors %}<small style="color: #F87171; font-size: 0.78rem;">{{ form.currency.errors.0 }}</small>{% endif %}
         </div>
         <div class="form-group">
           <label class="form-label">Currency Symbol</label>
           {{ form.currency_symbol }}
+          {% if form.currency_symbol.errors %}<small style="color: #F87171; font-size: 0.78rem;">{{ form.currency_symbol.errors.0 }}</small>{% endif %}
         </div>
         <div class="form-group">
           <label class="form-label">Low Stock Threshold</label>
           {{ form.low_stock_threshold }}
+          {% if form.low_stock_threshold.errors %}<small style="color: #F87171; font-size: 0.78rem;">{{ form.low_stock_threshold.errors.0 }}</small>{% endif %}
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
         <div class="form-group">
           <label class="form-label">Default VAT / Tax Rate (%)</label>
           {{ form.default_tax_rate }}
+          {% if form.default_tax_rate.errors %}<small style="color: #F87171; font-size: 0.78rem;">{{ form.default_tax_rate.errors.0 }}</small>{% endif %}
         </div>
         <div class="form-group">
           <label class="form-label">Default Order Discount (%)</label>
           {{ form.default_discount_rate }}
+          {% if form.default_discount_rate.errors %}<small style="color: #F87171; font-size: 0.78rem;">{{ form.default_discount_rate.errors.0 }}</small>{% endif %}
         </div>
       </div>
 
-      <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--slate-800); margin: 24px 0 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
-        3. Barcode & Thermal Receipt Settings
+      <!-- Section 3: Barcode & Thermal Receipt Settings -->
+      <h4 class="form-section-title">
+        <i class="ph-bold ph-barcode" style="color: #F59E0B; font-size: 1.1rem;"></i>
+        3. Barcode &amp; Thermal Receipt Settings
       </h4>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
         <div class="form-group">
           <label class="form-label">Active Barcode Format Strategy</label>
           {{ form.barcode_format }}
@@ -81,6 +125,7 @@
           {{ form.receipt_width_mm }}
         </div>
       </div>
+
       <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px;">
         <div class="form-group">
           <label class="form-label">Invoice Number Prefix</label>
@@ -92,15 +137,18 @@
         </div>
       </div>
 
-      <div class="form-group" style="margin-top: 12px;">
-        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; font-weight: 500;">
+      <!-- Overselling Flag -->
+      <div class="form-group" style="margin-top: 18px; padding: 14px 18px; border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.22);">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.88rem; font-weight: 600; color: var(--text-main); margin: 0;">
           {{ form.allow_negative_stock }}
-          <span>Allow Negative Stock Overselling (Not recommended)</span>
+          <span>Allow Negative Stock Overselling <span style="font-size: 0.78rem; font-weight: 400; color: #FCA5A5;">(Not recommended — may cause stock inconsistencies)</span></span>
         </label>
       </div>
 
-      <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
-        <button type="submit" class="btn btn-primary">Save Configuration</button>
+      <div style="display: flex; justify-content: flex-end; margin-top: 26px;">
+        <button type="submit" class="btn btn-primary" style="padding: 12px 28px; font-size: 0.95rem; font-weight: 700; box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4); display: flex; align-items: center; gap: 8px;">
+          <i class="ph-bold ph-floppy-disk"></i> Save Configuration
+        </button>
       </div>
     </form>
   </div>

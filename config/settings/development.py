@@ -8,6 +8,8 @@ ALLOWED_HOSTS = ['*']
 
 # Disable strict manifest static storage in development to ease asset editing
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = True
 
 # Allow all origins in local dev if needed
 CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=True, cast=bool)

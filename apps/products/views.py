@@ -8,6 +8,7 @@ from django.contrib import messages
 from apps.core.mixins import RoleRequiredMixin
 from apps.core.permissions import UserRole
 from .models import Product, Category
+from .forms import ProductForm
 
 
 class ProductListView(LoginRequiredMixin, ListView):
@@ -43,10 +44,7 @@ class ProductDetailView(LoginRequiredMixin, DetailView):
 
 class ProductCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     model = Product
-    fields = [
-        'name', 'sku', 'barcode', 'category', 'description', 'unit',
-        'cost_price', 'selling_price', 'discount_price', 'minimum_stock_level', 'image'
-    ]
+    form_class = ProductForm
     template_name = 'products/create.html'
     success_url = reverse_lazy('products:list')
     allowed_roles = UserRole.INVENTORY_TIER
@@ -62,10 +60,7 @@ class ProductCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
 
 class ProductUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateView):
     model = Product
-    fields = [
-        'name', 'sku', 'barcode', 'category', 'description', 'unit',
-        'cost_price', 'selling_price', 'discount_price', 'minimum_stock_level', 'image'
-    ]
+    form_class = ProductForm
     template_name = 'products/edit.html'
     allowed_roles = UserRole.INVENTORY_TIER
 

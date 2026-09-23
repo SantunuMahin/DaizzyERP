@@ -7,16 +7,12 @@ from django.contrib import messages
 from apps.core.mixins import RoleRequiredMixin
 from apps.core.permissions import UserRole
 from .models import StoreSettings
+from .forms import StoreSettingsForm
 
 
 class StoreSettingsUpdateView(RoleRequiredMixin, UpdateView):
     model = StoreSettings
-    fields = [
-        'store_name', 'store_address', 'phone', 'email', 'website', 'logo',
-        'currency', 'currency_symbol', 'invoice_prefix', 'invoice_number_format',
-        'barcode_format', 'default_tax_rate', 'default_discount_rate',
-        'allow_negative_stock', 'low_stock_threshold', 'receipt_width_mm'
-    ]
+    form_class = StoreSettingsForm
     template_name = 'settings/store_settings.html'
     success_url = reverse_lazy('settings_app:index')
     allowed_roles = UserRole.ADMIN_TIER
