@@ -118,3 +118,57 @@ class CourierSettingsView(LoginRequiredMixin, View):
 
         messages.success(request, 'Steadfast Courier configuration updated successfully.')
         return redirect('sales:courier_settings')
+
+
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.http import HttpResponse, JsonResponse
+import json
+
+@method_decorator(csrf_exempt, name='dispatch')
+class SteadfastWebhookView(View):
+    """
+    Receives real-time parcel delivery status updates pushed by Steadfast Courier.
+    """
+    def post(self, request):
+        try:
+            payload = json.loads(request.body)
+        except Exception:
+            payload = request.POST.dict()
+
+        consignment_id = str(payload.get('consignment_id') or payload.get('cid') or '').strip()
+        invoice = str(payload.get('invoice') or payload.get('invoice_number') or '').strip()
+        new_status = str(payload.get('status') or payload.get('delivery_status') or '').strip().lower()
+
+        if not new_status:
+            return JsonResponse({'error': 'Missing status'}, status=400)
+
+        sale = None
+        if consignment_id:
+            sale = Sale.objects.filter(courier_consignment_id=consignment_id).first()
+        if not sale and invoice:
+            sale = Sale.objects.filter(invoice_number=invoice).first()
+
+        if sale:
+            status_map = {
+                'in_review': 'in_review',
+                'pending': 'pending',
+                'in_transit': 'in_transit',
+                'delivered': 'delivered',
+                'partial_delivered': 'partial_delivered',
+                'cancelled': 'cancelled',
+            }
+            mapped_status = status_map.get(new_status, sale.courier_status)
+            sale.courier_status = mapped_status
+            sale.save(update_fields=['courier_status', 'updated_at'])
+
+            if mapped_status == 'delivered':
+                try:
+                    from apps.messaging.services.auto_messaging import AutoMessagingService
+                    AutoMessagingService.on_order_delivered(sale)
+                except Exception:
+                    pass
+
+            return JsonResponse({'success': True, 'invoice': sale.invoice_number, 'status': sale.courier_status})
+
+        return JsonResponse({'message': 'Webhook received, no matching order found'}, status=200)
