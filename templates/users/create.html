@@ -1,0 +1,71 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Create Staff Account · {{ STORE_NAME }}{% endblock %}
+{% block page_heading %}Provision Staff Account{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+  <div class="card-header">
+    <h3 class="card-title">Staff Details & Role Assignment</h3>
+    <a href="{% url 'users:list' %}" class="btn btn-outline btn-sm">Cancel</a>
+  </div>
+  <div class="card-body">
+    <form method="post" action="">
+      {% csrf_token %}
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Username *</label>
+          {{ form.username }}
+          {% if form.username.errors %}<p style="color:var(--danger-500); font-size:0.8rem;">{{ form.username.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address *</label>
+          {{ form.email }}
+          {% if form.email.errors %}<p style="color:var(--danger-500); font-size:0.8rem;">{{ form.email.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          {{ form.first_name }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          {{ form.last_name }}
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Role Assignment *</label>
+          {{ form.role }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          {{ form.phone_number }}
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          {{ form.password1 }}
+          {% if form.password1.errors %}<p style="color:var(--danger-500); font-size:0.8rem;">{{ form.password1.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm Password *</label>
+          {{ form.password2 }}
+          {% if form.password2.errors %}<p style="color:var(--danger-500); font-size:0.8rem;">{{ form.password2.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+        <a href="{% url 'users:list' %}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-primary">Create Account</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

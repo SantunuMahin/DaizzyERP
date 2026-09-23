@@ -1,0 +1,96 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Product Catalog · {{ STORE_NAME|default:"Daizzy.online" }}{% endblock %}
+{% block page_heading %}Product Catalog{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+    <form method="get" action="" style="display: flex; gap: 10px; align-items: center; flex: 1; min-width: 260px; flex-wrap: wrap;">
+      <input type="text" name="q" value="{{ request.GET.q|default:'' }}" class="form-input" placeholder="Search by name, SKU or barcode..." style="flex: 1; min-width: 200px; max-width: 360px;">
+      <button type="submit" class="btn btn-outline btn-sm">Search</button>
+      {% if request.GET.q %}
+      <a href="{% url 'products:list' %}" class="btn btn-outline btn-sm" style="color: var(--danger-500);">Clear</a>
+      {% endif %}
+    </form>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+      <a href="{% url 'barcode:print_labels' %}" class="btn btn-outline btn-sm">
+        <i class="ph-bold ph-barcode"></i> Print Barcodes
+      </a>
+      <a href="{% url 'products:create' %}" class="btn btn-primary btn-sm">
+        <i class="ph-bold ph-plus"></i> New Product
+      </a>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Product Name</th>
+          <th>SKU</th>
+          <th>Barcode</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Stock Balance</th>
+          <th>Status</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td>
+            <strong><a href="{% url 'products:detail' product.pk %}" style="font-weight: 700;">{{ product.name }}</a></strong>
+            <div style="font-size: 0.74rem; color: var(--text-muted); font-family: var(--font-mono);">SKU: {{ product.sku }}</div>
+          </td>
+          <td><code style="font-family: var(--font-mono); font-size: 0.82rem;">{{ product.sku }}</code></td>
+          <td><code style="color: var(--brand-primary); font-weight: 700; font-family: var(--font-mono); font-size: 0.84rem;">{{ product.barcode }}</code></td>
+          <td>
+            <span class="badge badge-brand">{{ product.category.name|default:"Uncategorized" }}</span>
+          </td>
+          <td style="font-weight: 700; font-family: var(--font-mono); color: var(--brand-ink);">
+            {{ CURRENCY_SYMBOL }} {{ product.selling_price|intcomma }}
+          </td>
+          <td>
+            {% if product.current_stock <= 0 %}
+              <span class="badge badge-danger">Out of Stock (0)</span>
+            {% elif product.current_stock <= product.minimum_stock_level %}
+              <span class="badge badge-warning">Low: {{ product.current_stock }} {{ product.unit }}</span>
+            {% else %}
+              <span class="badge badge-success">{{ product.current_stock }} {{ product.unit }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if product.is_active %}
+              <span class="badge badge-success">Active</span>
+            {% else %}
+              <span class="badge badge-neutral">Inactive</span>
+            {% endif %}
+          </td>
+          <td style="text-align: right; white-space: nowrap;">
+            <a href="{% url 'products:detail' product.pk %}" class="btn btn-outline btn-sm" title="View details" style="padding: 6px 10px;">
+              <i class="ph-bold ph-eye"></i>
+            </a>
+            <a href="{% url 'products:edit' product.pk %}" class="btn btn-outline btn-sm" title="Edit product" style="padding: 6px 10px;">
+              <i class="ph-bold ph-pencil-simple"></i>
+            </a>
+            <a href="{% url 'barcode:print_labels' %}?product={{ product.pk }}" class="btn btn-outline btn-sm" title="Print Barcode" style="padding: 6px 10px;">
+              <i class="ph-bold ph-barcode"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 48px 16px;">
+            <i class="ph-bold ph-magnifying-glass" style="font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 8px;"></i>
+            No products match the search criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

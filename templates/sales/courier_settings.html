@@ -1,0 +1,119 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Steadfast Courier Settings · {{ STORE_NAME|default:"Daizzy" }}{% endblock %}
+{% block page_heading %}Steadfast Courier Integration{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+  <div>
+    <h1 style="font-size:1.45rem; font-weight:800; color:var(--text-main); font-family:var(--font-sans);">
+      <span class="gradient-text">Steadfast Courier</span> Integration
+    </h1>
+    <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">
+      Automate parcel booking, Cash-on-Delivery (COD) collection, and real-time tracking for Bangladesh e-commerce.
+    </p>
+  </div>
+  <div style="display:flex; gap:8px;">
+    <a href="{% url 'sales:list' %}?channel=online" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-receipt"></i> Online Orders
+    </a>
+    <a href="{% url 'messaging:auto_rules' %}" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-robot"></i> Auto-Messaging
+    </a>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; align-items:start;">
+  <!-- Left: Settings Form -->
+  <div class="card" style="border: 1px solid var(--border-subtle);">
+    <div class="card-header" style="border-bottom: 1px solid var(--border-subtle); padding:16px 22px;">
+      <h3 class="card-title" style="display:flex; align-items:center; gap:8px;">
+        <i class="ph-bold ph-truck" style="color:var(--brand-primary);"></i> API Credentials &amp; Preferences
+      </h3>
+    </div>
+    <form method="post" style="padding:22px;">
+      {% csrf_token %}
+
+      <div style="margin-bottom:18px;">
+        <label style="display:block; font-size:0.83rem; font-weight:700; margin-bottom:6px; color:var(--text-main);">
+          Steadfast API Key *
+        </label>
+        <input type="password" name="api_key" value="{{ config.api_key }}" placeholder="Paste your Steadfast API Key" class="form-control" style="width:100%; padding:10px 14px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle); font-family:var(--font-mono);">
+        <small style="color:var(--text-muted); font-size:0.75rem;">Obtained from Steadfast Merchant Portal &gt; Settings &gt; API.</small>
+      </div>
+
+      <div style="margin-bottom:18px;">
+        <label style="display:block; font-size:0.83rem; font-weight:700; margin-bottom:6px; color:var(--text-main);">
+          Steadfast Secret Key *
+        </label>
+        <input type="password" name="secret_key" value="{{ config.secret_key }}" placeholder="Paste your Steadfast Secret Key" class="form-control" style="width:100%; padding:10px 14px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle); font-family:var(--font-mono);">
+      </div>
+
+      <div style="margin-bottom:18px;">
+        <label style="display:block; font-size:0.83rem; font-weight:700; margin-bottom:6px; color:var(--text-main);">
+          API Base URL
+        </label>
+        <input type="url" name="base_url" value="{{ config.base_url }}" class="form-control" style="width:100%; padding:10px 14px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle); font-family:var(--font-mono);">
+        <small style="color:var(--text-muted); font-size:0.75rem;">Default: https://portal.steadfast.com.bd/api/v1</small>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px; padding:16px; border-radius:var(--radius-md); background:var(--glass-bg-strong); border:1px solid var(--border-subtle);">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:0.86rem; color:var(--text-main);">
+          <input type="checkbox" name="is_active" {% if config.is_active %}checked{% endif %} style="width:18px; height:18px; accent-color:var(--brand-primary);">
+          <strong>Enable Steadfast Courier Integration</strong>
+        </label>
+
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:0.86rem; color:var(--text-main);">
+          <input type="checkbox" name="auto_send_on_confirm" {% if config.auto_send_on_confirm %}checked{% endif %} style="width:18px; height:18px; accent-color:var(--brand-primary);">
+          <strong>Auto-dispatch parcel when online order is confirmed</strong>
+          <span style="font-size:0.75rem; color:var(--text-muted); margin-left:auto;">(Recommended)</span>
+        </label>
+
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:0.86rem; color:var(--text-main);">
+          <input type="checkbox" name="test_mode" {% if config.test_mode %}checked{% endif %} style="width:18px; height:18px; accent-color:#F59E0B;">
+          <span>Test / Simulation Mode (Generate mock tracking codes without live API calls)</span>
+        </label>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end;">
+        <button type="submit" class="btn btn-primary" style="box-shadow:0 4px 14px rgba(124,58,237,0.35);">
+          <i class="ph-bold ph-floppy-disk"></i> Save Steadfast Configuration
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Right: Account Status & Balance -->
+  <div style="display:flex; flex-direction:column; gap:18px;">
+    <!-- Balance Card -->
+    <div class="card" style="border: 1px solid var(--border-subtle); padding:20px;">
+      <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">
+        Steadfast Account Balance
+      </div>
+      <div style="font-size:1.8rem; font-weight:800; color:#10B981; font-family:var(--font-mono); margin:8px 0;">
+        ৳ {{ balance_info.current_balance|default:"0.00" }}
+      </div>
+      <div style="font-size:0.8rem; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+        <span class="badge {% if balance_info.status == 200 %}badge-success{% else %}badge-warning{% endif %}">
+          {% if balance_info.status == 200 %}Connected{% else %}Check Credentials{% endif %}
+        </span>
+        <span>{{ balance_info.message|default:"Live connection verified" }}</span>
+      </div>
+    </div>
+
+    <!-- Quick Instructions -->
+    <div class="card" style="border: 1px solid var(--border-subtle); padding:20px; font-size:0.83rem; line-height:1.6; color:var(--text-muted);">
+      <h4 style="color:var(--text-main); font-size:0.92rem; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+        <i class="ph-bold ph-lightning" style="color:var(--brand-primary);"></i> How It Works
+      </h4>
+      <ol style="padding-left:18px; margin:0; display:flex; flex-direction:column; gap:8px;">
+        <li>When a customer orders via WhatsApp, Messenger, or Online store, confirm the order.</li>
+        <li>Daizzy ERP generates an official Steadfast consignment ID and tracking code automatically.</li>
+        <li>An automated message with tracking link is dispatched to customer's WhatsApp/Messenger.</li>
+        <li>Track real-time delivery status or sync with Steadfast with one click!</li>
+      </ol>
+    </div>
+  </div>
+</div>
+{% endblock %}

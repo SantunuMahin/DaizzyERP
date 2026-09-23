@@ -1,0 +1,142 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Contacts CRM · {{ STORE_NAME|default:"Daizzy" }}{% endblock %}
+{% block page_heading %}Contacts CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">Contacts <span class="gradient-text">CRM</span></h1>
+    <p class="page-header-subtitle">{{ total_contacts }} contact{{ total_contacts|pluralize }} · Manage all your business contacts and linked messaging handles</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'messaging:inbox' %}" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-chats-circle"></i> Messages Hub
+    </a>
+    <a href="{% url 'messaging:contact_create' %}" class="btn btn-primary">
+      <i class="ph-bold ph-user-plus"></i> New Contact
+    </a>
+  </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card" style="margin-bottom: 22px;">
+  <div class="card-body" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+    <!-- Search -->
+    <div class="search-bar" style="flex:1; min-width:200px; max-width:340px;">
+      <i class="ph-bold ph-magnifying-glass search-bar-icon"></i>
+      <form method="get" action="" style="display:contents;">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search contacts…"
+               onchange="this.form.submit()">
+      </form>
+    </div>
+    <!-- Platform filter -->
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      <a href="?q={{ search_query }}" class="platform-tab {% if not platform_filter %}active-tab{% endif %}">All</a>
+      <a href="?platform=whatsapp&q={{ search_query }}" class="platform-tab wab {% if platform_filter == 'whatsapp' %}active-tab{% endif %}">💬 WhatsApp</a>
+      <a href="?platform=messenger&q={{ search_query }}" class="platform-tab msn {% if platform_filter == 'messenger' %}active-tab{% endif %}">💙 Messenger</a>
+      <a href="?platform=telegram&q={{ search_query }}" class="platform-tab tlg {% if platform_filter == 'telegram' %}active-tab{% endif %}">✈️ Telegram</a>
+      <a href="?platform=instagram&q={{ search_query }}" class="platform-tab ins {% if platform_filter == 'instagram' %}active-tab{% endif %}">📸 Instagram</a>
+      <a href="?platform=email&q={{ search_query }}" class="platform-tab {% if platform_filter == 'email' %}active-tab{% endif %}">📧 Email</a>
+    </div>
+  </div>
+</div>
+
+<!-- Contacts Grid -->
+{% if contacts %}
+<div class="contacts-grid">
+  {% for contact in contacts %}
+  <div class="contact-card">
+    <div class="contact-card-header">
+      <div class="contact-avatar" style="background: {{ contact.avatar_color }};">{{ contact.initials }}</div>
+      <div class="contact-info">
+        <div class="contact-name">{{ contact.name }}</div>
+        <div class="contact-company">
+          {% if contact.company %}{{ contact.company }}{% elif contact.phone %}{{ contact.phone }}{% else %}—{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Platform handles -->
+    <div class="contact-platforms">
+      {% if contact.whatsapp_number %}<span class="badge badge-whatsapp">💬 WA</span>{% endif %}
+      {% if contact.messenger_id %}<span class="badge badge-messenger">💙 MSN</span>{% endif %}
+      {% if contact.telegram_id or contact.telegram_username %}<span class="badge badge-telegram">✈️ TLG</span>{% endif %}
+      {% if contact.instagram_id %}<span class="badge badge-instagram">📸 IG</span>{% endif %}
+      {% if contact.email %}<span class="badge badge-email">📧 Email</span>{% endif %}
+      {% if not contact.whatsapp_number and not contact.messenger_id and not contact.telegram_id and not contact.instagram_id and not contact.email %}
+        <span class="badge badge-neutral">No channels linked</span>
+      {% endif %}
+    </div>
+
+    <!-- Stats -->
+    <div class="contact-stats" style="padding-top:10px; border-top:1px solid var(--border-subtle);">
+      <div class="contact-stat">
+        <div class="contact-stat-val">{{ contact.conversations.count }}</div>
+        <div class="contact-stat-lbl">Convs</div>
+      </div>
+      <div class="contact-stat">
+        <div class="contact-stat-val">{{ contact.total_messages }}</div>
+        <div class="contact-stat-lbl">Messages</div>
+      </div>
+      <div class="contact-stat">
+        <div class="contact-stat-val" style="font-size:0.82rem;">
+          {% if contact.last_message %}{{ contact.last_message.created_at|date:"d M" }}{% else %}—{% endif %}
+        </div>
+        <div class="contact-stat-lbl">Last Msg</div>
+      </div>
+    </div>
+
+    <!-- Tags -->
+    {% if contact.tag_list %}
+    <div style="display:flex; gap:5px; flex-wrap:wrap;">
+      {% for tag in contact.tag_list %}
+      <a href="?tag={{ tag }}" class="badge badge-purple" style="font-size:0.65rem;">{{ tag }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="contact-actions">
+      <a href="{% url 'messaging:contact_detail' contact.pk %}" class="btn btn-outline btn-sm" style="flex:1; justify-content:center;">
+        <i class="ph-bold ph-user"></i> View
+      </a>
+      <a href="{% url 'messaging:inbox' %}?contact={{ contact.pk }}" class="btn btn-primary btn-sm" style="flex:1; justify-content:center;">
+        <i class="ph-bold ph-chats-circle"></i> Message
+      </a>
+      <a href="{% url 'messaging:contact_edit' contact.pk %}" class="btn btn-outline btn-sm" title="Edit">
+        <i class="ph-bold ph-pencil"></i>
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<div style="display:flex; justify-content:center; gap:8px; margin-top:28px;">
+  {% if page_obj.has_previous %}
+  <a href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&platform={{ platform_filter }}" class="btn btn-outline btn-sm">← Prev</a>
+  {% endif %}
+  <span style="padding:8px 14px; background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:var(--radius-md); font-size:0.82rem; color:var(--text-muted);">
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+  </span>
+  {% if page_obj.has_next %}
+  <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&platform={{ platform_filter }}" class="btn btn-outline btn-sm">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state" style="min-height:360px;">
+  <div class="empty-state-icon"><i class="ph-bold ph-address-book"></i></div>
+  <h3>No contacts found</h3>
+  <p>{% if search_query %}No contacts match "{{ search_query }}". Try a different search.{% else %}Add your first contact to start managing customer communications.{% endif %}</p>
+  <a href="{% url 'messaging:contact_create' %}" class="btn btn-primary" style="margin-top:8px;">
+    <i class="ph-bold ph-user-plus"></i> Add Contact
+  </a>
+</div>
+{% endif %}
+
+{% endblock %}

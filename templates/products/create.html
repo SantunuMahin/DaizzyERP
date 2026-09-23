@@ -1,0 +1,83 @@
+{% extends 'base/base.html' %}
+
+{% block title %}New Product Registration · {{ STORE_NAME }}{% endblock %}
+{% block page_heading %}Register New Product{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+  <div class="card-header">
+    <h3 class="card-title">Product Details</h3>
+    <a href="{% url 'products:list' %}" class="btn btn-outline btn-sm">Cancel</a>
+  </div>
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Product Name *</label>
+          {{ form.name }}
+          {% if form.name.errors %}<p style="color:var(--danger-500); font-size:0.8rem;">{{ form.name.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          {{ form.category }}
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">SKU (Stock Keeping Unit) *</label>
+          {{ form.sku }}
+          {% if form.sku.errors %}<p style="color:var(--danger-500); font-size:0.8rem;">{{ form.sku.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Barcode *</label>
+          {{ form.barcode }}
+          {% if form.barcode.errors %}<p style="color:var(--danger-500); font-size:0.8rem;">{{ form.barcode.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Cost Price *</label>
+          {{ form.cost_price }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Selling Price *</label>
+          {{ form.selling_price }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Discount Price</label>
+          {{ form.discount_price }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit</label>
+          {{ form.unit }}
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Minimum Stock Alert Threshold</label>
+          {{ form.minimum_stock_level }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Product Photo</label>
+          {{ form.image }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        {{ form.description }}
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px;">
+        <a href="{% url 'products:list' %}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Product</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

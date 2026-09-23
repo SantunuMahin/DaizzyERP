@@ -1,0 +1,76 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Barcode Label Printing · {{ STORE_NAME }}{% endblock %}
+{% block page_heading %}Print Barcode Labels{% endblock %}
+
+{% block content %}
+<!-- Options Selector Card (Hidden on print) -->
+<div class="card no-print" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <h3 class="card-title">Label Generation Controls</h3>
+    <button onclick="window.print()" class="btn btn-primary btn-sm">
+      <i class="ph-bold ph-printer"></i> Print Labels Now
+    </button>
+  </div>
+  <div class="card-body">
+    <form method="get" action="" style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;">
+      <div class="form-group" style="margin-bottom: 0; min-width: 280px;">
+        <label class="form-label">Select Product</label>
+        <select name="product" class="form-select">
+          <option value="">-- All Products (1 each) --</option>
+          {% for p in all_products %}
+          <option value="{{ p.id }}" {% if request.GET.product == p.id|stringformat:"i" %}selected{% endif %}>
+            {{ p.name }} ({{ p.barcode }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0; width: 140px;">
+        <label class="form-label">Copies per Item</label>
+        <input type="number" name="qty" value="{{ request.GET.qty|default:1 }}" min="1" max="100" class="form-input">
+      </div>
+
+      <button type="submit" class="btn btn-outline">Generate Preview</button>
+    </form>
+  </div>
+</div>
+
+<!-- Printable Labels Grid -->
+<div class="label-sheet" style="display: flex; flex-wrap: wrap; gap: 14px; justify-content: flex-start;">
+  {% for item in items_to_print %}
+  <div class="barcode-sticker" style="width: 50mm; min-height: 30mm; border: 1px dashed #ccc; padding: 6px; border-radius: 4px; background: #fff; text-align: center; display: flex; flex-direction: column; justify-content: space-between; page-break-inside: avoid;">
+    <div style="font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #333;">
+      {{ STORE_NAME }}
+    </div>
+    
+    <div style="font-size: 10px; font-weight: 700; line-height: 1.1; margin: 2px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+      {{ item.product.name }}
+    </div>
+
+    <div class="svg-wrapper" style="margin: 2px auto; max-width: 100%;">
+      {{ item.svg|safe }}
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; margin-top: 2px; padding: 0 4px;">
+      <span style="font-family: var(--font-mono); color: #555;">{{ item.product.sku }}</span>
+      <span style="font-weight: 800; font-size: 11px; color: #000;">{{ CURRENCY_SYMBOL }} {{ item.product.selling_price|intcomma }}</span>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card" style="width: 100%; text-align: center; padding: 48px; color: var(--slate-400);">
+    Select a product and quantity to preview barcode labels.
+  </div>
+  {% endfor %}
+</div>
+
+<style>
+  @media print {
+    body { background: #fff !important; }
+    .app-sidebar, .app-topbar, .no-print { display: none !important; }
+    .label-sheet { gap: 4mm !important; }
+    .barcode-sticker { border: 1px solid #000 !important; }
+  }
+</style>
+{% endblock %}

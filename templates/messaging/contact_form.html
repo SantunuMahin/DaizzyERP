@@ -1,0 +1,123 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{% if contact %}Edit {{ contact.name }}{% else %}New Contact{% endif %} · Daizzy{% endblock %}
+{% block page_heading %}{% if contact %}Edit Contact{% else %}New Contact{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">{% if contact %}Edit <span class="gradient-text">{{ contact.name }}</span>{% else %}New <span class="gradient-text">Contact</span>{% endif %}</h1>
+    <p class="page-header-subtitle">Fill in the contact details and link their messaging platform handles.</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'messaging:contacts' %}" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-arrow-left"></i> Back to Contacts
+    </a>
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+
+    <!-- Left: Basic Info -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="ph-bold ph-user"></i> Basic Information</h3>
+      </div>
+      <div class="card-body" style="display:flex; flex-direction:column; gap:0;">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" name="name" class="form-control" value="{{ contact.name|default:'' }}" required placeholder="Contact's full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Company / Organization</label>
+          <input type="text" name="company" class="form-control" value="{{ contact.company|default:'' }}" placeholder="Company name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Primary Phone</label>
+          <input type="tel" name="phone" class="form-control" value="{{ contact.phone|default:'' }}" placeholder="+880 1X XX XX XXXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" name="email" class="form-control" value="{{ contact.email|default:'' }}" placeholder="email@example.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tags (comma-separated)</label>
+          <input type="text" name="tags" class="form-control" value="{{ contact.tags|default:'' }}" placeholder="customer, vip, wholesale">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-control" rows="4" placeholder="Any notes about this contact…">{{ contact.notes|default:'' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Platform Handles -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="ph-bold ph-chats-circle"></i> Messaging Handles</h3>
+      </div>
+      <div class="card-body" style="display:flex; flex-direction:column; gap:0;">
+        <!-- WhatsApp -->
+        <div class="form-group">
+          <label class="form-label" style="display:flex; align-items:center; gap:6px;">
+            <span style="background:rgba(37,211,102,0.15); color:#25D366; width:22px; height:22px; border-radius:5px; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem;">💬</span>
+            WhatsApp Number
+          </label>
+          <input type="tel" name="whatsapp_number" class="form-control" value="{{ contact.whatsapp_number|default:'' }}" placeholder="+880 1X XX XX XXXX (E.164 format)">
+          <div style="font-size:0.73rem; color:var(--text-muted); margin-top:4px;">Must be in E.164 format, e.g. +8801XXXXXXXXX</div>
+        </div>
+        <!-- Messenger -->
+        <div class="form-group">
+          <label class="form-label" style="display:flex; align-items:center; gap:6px;">
+            <span style="background:rgba(0,153,255,0.15); color:#0099FF; width:22px; height:22px; border-radius:5px; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem;">💙</span>
+            Facebook Messenger PSID
+          </label>
+          <input type="text" name="messenger_id" class="form-control" value="{{ contact.messenger_id|default:'' }}" placeholder="Page-Scoped User ID (numeric)">
+        </div>
+        <!-- Instagram -->
+        <div class="form-group">
+          <label class="form-label" style="display:flex; align-items:center; gap:6px;">
+            <span style="background:rgba(221,42,123,0.15); color:#DD2A7B; width:22px; height:22px; border-radius:5px; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem;">📸</span>
+            Instagram User ID
+          </label>
+          <input type="text" name="instagram_id" class="form-control" value="{{ contact.instagram_id|default:'' }}" placeholder="Instagram IGSID">
+        </div>
+        <!-- Telegram -->
+        <div class="form-group">
+          <label class="form-label" style="display:flex; align-items:center; gap:6px;">
+            <span style="background:rgba(42,171,238,0.15); color:#2AABEE; width:22px; height:22px; border-radius:5px; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem;">✈️</span>
+            Telegram Chat ID
+          </label>
+          <input type="text" name="telegram_id" class="form-control" value="{{ contact.telegram_id|default:'' }}" placeholder="Numeric chat/user ID">
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex; align-items:center; gap:6px;">
+            <span style="background:rgba(42,171,238,0.15); color:#2AABEE; width:22px; height:22px; border-radius:5px; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem;">✈️</span>
+            Telegram Username (optional)
+          </label>
+          <input type="text" name="telegram_username" class="form-control" value="{{ contact.telegram_username|default:'' }}" placeholder="@username (without @)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+    <a href="{% url 'messaging:contacts' %}" class="btn btn-outline">Cancel</a>
+    {% if contact %}
+    <form method="post" action="{% url 'messaging:contact_delete' contact.pk %}" style="display:inline;" onsubmit="return confirm('Archive this contact?')">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">
+        <i class="ph-bold ph-archive"></i> Archive
+      </button>
+    </form>
+    {% endif %}
+    <button type="submit" class="btn btn-primary">
+      <i class="ph-bold ph-floppy-disk"></i> {% if contact %}Save Changes{% else %}Create Contact{% endif %}
+    </button>
+  </div>
+</form>
+{% endblock %}

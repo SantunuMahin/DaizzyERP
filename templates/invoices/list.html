@@ -1,0 +1,64 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Invoices · {{ STORE_NAME }}{% endblock %}
+{% block page_heading %}Commercial Invoices Archive{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+    <form method="get" action="" style="display: flex; gap: 10px; align-items: center; flex: 1;">
+      <input type="text" name="q" value="{{ request.GET.q|default:'' }}" class="form-input" placeholder="Search by invoice number or phone..." style="max-width: 320px;">
+      <button type="submit" class="btn btn-outline btn-sm">Search</button>
+      {% if request.GET.q %}
+      <a href="{% url 'invoices:list' %}" class="btn btn-outline btn-sm" style="color: var(--danger-500);">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Created Date</th>
+          <th>Order Total</th>
+          <th>Customer Phone</th>
+          <th>Print Count</th>
+          <th>Last Printed</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr>
+          <td>
+            <strong><a href="{% url 'invoices:detail' inv.pk %}">{{ inv.invoice_number }}</a></strong>
+          </td>
+          <td style="font-size: 0.8rem;">{{ inv.created_at|date:"d M Y, H:i" }}</td>
+          <td style="font-weight: 700;">{{ CURRENCY_SYMBOL }} {{ inv.sale.grand_total|intcomma }}</td>
+          <td>{{ inv.sale.customer_phone|default:"—" }}</td>
+          <td>
+            <span class="badge badge-neutral">{{ inv.print_count }} print{{ inv.print_count|pluralize }}</span>
+          </td>
+          <td style="font-size: 0.8rem; color: var(--slate-500);">
+            {{ inv.last_printed_at|date:"d M, H:i"|default:"Never" }}
+          </td>
+          <td style="text-align: right;">
+            <a href="{% url 'invoices:print' inv.pk %}" target="_blank" class="btn btn-outline btn-sm" title="Reprint Thermal Receipt">
+              <i class="ph-bold ph-printer"></i> Reprint
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" style="text-align: center; color: var(--slate-400); padding: 36px;">
+            No invoices found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

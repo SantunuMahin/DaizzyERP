@@ -1,0 +1,97 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>{% block title %}Sign In{% endblock %} · {{ STORE_NAME|default:"Daizzy.online" }}</title>
+  
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%234A5578'/><circle cx='50' cy='18' r='12' fill='%23B8BEDD'/><circle cx='50' cy='82' r='12' fill='%23B8BEDD'/><circle cx='18' cy='50' r='12' fill='%23B8BEDD'/><circle cx='82' cy='50' r='12' fill='%23B8BEDD'/><circle cx='50' cy='50' r='18' fill='%23F4F3EF'/></svg>">
+  <meta name="theme-color" content="#4A5578">
+
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+  
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 0%, #2E3650 0%, #161A26 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      font-family: var(--font-sans);
+    }
+    .auth-card {
+      width: 100%;
+      max-width: 440px;
+      background: #FBFAF8;
+      border-radius: var(--radius-xl);
+      padding: 40px 36px;
+      box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(184, 190, 221, 0.25);
+    }
+    .auth-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .auth-brand-icon {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, #4A5578, #2E3650);
+      color: #FFFFFF;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.6rem;
+      border-radius: var(--radius-md);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      border: 1px solid rgba(184, 190, 221, 0.35);
+      box-shadow: 0 6px 20px rgba(46, 54, 80, 0.45);
+    }
+    .auth-title {
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--brand-ink);
+      line-height: 1.2;
+    }
+    .auth-subtitle {
+      font-size: 0.84rem;
+      color: var(--brand-muted);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+    @media (max-width: 480px) {
+      .auth-card {
+        padding: 30px 22px;
+      }
+      .auth-title {
+        font-size: 1.35rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-brand-icon">D</div>
+      <h1 class="auth-title">{{ STORE_NAME|default:"Daizzy.online" }}</h1>
+      <p class="auth-subtitle">Curated Lifestyle & POS Terminal</p>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="toast {% if message.tags %}{{ message.tags }}{% else %}error{% endif %}" style="position: static; margin-bottom: 16px; width: 100%;">
+          <span>{{ message }}</span>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    {% block auth_content %}{% endblock %}
+  </div>
+</body>
+</html>

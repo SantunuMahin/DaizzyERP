@@ -1,0 +1,131 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}{{ product.name }} · {{ STORE_NAME|default:"Daizzy.online" }}{% endblock %}
+{% block page_heading %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 20px; align-items: start;">
+  <!-- Left Column: Product Info & Stock History -->
+  <div style="min-width: 0;">
+    <div class="card">
+      <div class="card-header" style="flex-wrap: wrap; gap: 10px;">
+        <h3 class="card-title">Specification & Pricing</h3>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <a href="{% url 'products:edit' product.pk %}" class="btn btn-outline btn-sm">
+            <i class="ph-bold ph-pencil-simple"></i> Edit
+          </a>
+          <a href="{% url 'inventory:adjust' %}?product={{ product.pk }}" class="btn btn-outline btn-sm">
+            <i class="ph-bold ph-arrows-clockwise"></i> Adjust Stock
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 20px;">
+          <div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">SKU</div>
+            <div style="font-weight: 700; font-family: var(--font-mono); font-size: 1rem; color: var(--text-main);">{{ product.sku }}</div>
+          </div>
+          <div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Category</div>
+            <div style="font-weight: 600; color: var(--brand-primary);">{{ product.category.name|default:"None" }}</div>
+          </div>
+          <div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Cost Price</div>
+            <div style="font-weight: 600; font-family: var(--font-mono);">{{ CURRENCY_SYMBOL }} {{ product.cost_price|intcomma }}</div>
+          </div>
+          <div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Selling Price</div>
+            <div style="font-weight: 800; color: var(--brand-primary); font-size: 1.15rem; font-family: var(--font-mono);">{{ CURRENCY_SYMBOL }} {{ product.selling_price|intcomma }}</div>
+          </div>
+        </div>
+        {% if product.description %}
+        <div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">Description</div>
+          <p style="color: var(--text-main); font-size: 0.92rem; line-height: 1.6;">{{ product.description }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Product Specific Stock Ledger -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Stock Movement Ledger</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Qty</th>
+              <th>Shift</th>
+              <th>Reason</th>
+              <th>User</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tx in inventory_transactions %}
+            <tr>
+              <td style="font-size: 0.8rem; white-space: nowrap;">{{ tx.created_at|date:"d M Y, H:i" }}</td>
+              <td><span class="badge badge-neutral" style="font-size: 0.7rem;">{{ tx.get_transaction_type_display }}</span></td>
+              <td style="font-weight: 700; font-family: var(--font-mono); color: {% if tx.direction > 0 %}var(--success-600){% else %}var(--danger-500){% endif %};">
+                {% if tx.direction > 0 %}+{% else %}-{% endif %}{{ tx.quantity }}
+              </td>
+              <td style="font-family: var(--font-mono); font-size: 0.84rem;">{{ tx.previous_quantity }} &rarr; <strong>{{ tx.new_quantity }}</strong></td>
+              <td style="font-size: 0.84rem; color: var(--text-muted);">{{ tx.reason|default:"—" }}</td>
+              <td style="font-size: 0.8rem; color: var(--text-muted);">{{ tx.created_by.username|default:"System" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 32px 16px;">
+                No stock transactions logged for this item yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Barcode & Stock Status Cards -->
+  <div style="min-width: 0;">
+    <!-- Stock Balance Card -->
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="card-header">
+        <h3 class="card-title">Stock Balance</h3>
+      </div>
+      <div class="card-body" style="text-align: center; padding: 24px 16px;">
+        <div style="font-family: var(--font-display); font-size: 2.8rem; font-weight: 700; line-height: 1; margin-bottom: 6px; color: {% if product.current_stock <= 0 %}var(--danger-500){% elif product.is_low_stock %}var(--warning-600){% else %}var(--success-600){% endif %};">
+          {{ product.current_stock }}
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">{{ product.unit }} currently in stock</div>
+        {% if product.is_low_stock %}
+          <div class="badge badge-warning" style="margin-bottom: 8px;">Threshold Alert: &le; {{ product.minimum_stock_level }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Live Barcode Card -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Barcode Label</h3>
+        <a href="{% url 'barcode:print_labels' %}?product={{ product.pk }}" class="btn btn-outline btn-sm">
+          <i class="ph-bold ph-printer"></i>
+        </a>
+      </div>
+      <div class="card-body" style="text-align: center; padding: 24px 16px;">
+        <img src="{% url 'barcode:svg' product.barcode %}" alt="{{ product.barcode }}" style="max-width: 100%; height: auto; margin-bottom: 12px; border-radius: var(--radius-xs);">
+        <div style="font-family: var(--font-mono); font-size: 1.15rem; font-weight: 700; letter-spacing: 0.05em; color: var(--brand-primary);">
+          {{ product.barcode }}
+        </div>
+        <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px;">
+          Universal Code · EAN / Code-128
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

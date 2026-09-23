@@ -1,0 +1,245 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Order {{ sale.invoice_number }} · {{ STORE_NAME|default:"Daizzy.online" }}{% endblock %}
+{% block page_heading %}Order: {{ sale.invoice_number }}{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; align-items: start;">
+  <!-- Left: Line Items & Commercial Details -->
+  <div style="min-width: 0;">
+    <div class="card">
+      <div class="card-header" style="flex-wrap: wrap; gap: 10px;">
+        <h3 class="card-title">Order Line Items</h3>
+        <span class="badge {% if sale.status == 'COMPLETED' %}badge-success{% elif sale.status == 'CANCELLED' %}badge-danger{% else %}badge-warning{% endif %}">
+          {{ sale.get_status_display }}
+        </span>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Item Name</th>
+              <th>SKU / Barcode</th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Discount</th>
+              <th style="text-align: right;">Line Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            <tr>
+              <td>
+                <strong><a href="{% url 'products:detail' item.product.pk %}">{{ item.product_name }}</a></strong>
+              </td>
+              <td style="font-size: 0.8rem; font-family: var(--font-mono);">
+                {{ item.product_sku }}<br>
+                <span style="color: var(--brand-primary); font-weight: 700;">{{ item.product_barcode }}</span>
+              </td>
+              <td style="font-weight: 700; font-family: var(--font-mono);">{{ item.quantity }}</td>
+              <td style="font-family: var(--font-mono);">{{ CURRENCY_SYMBOL }} {{ item.unit_price|intcomma }}</td>
+              <td style="font-family: var(--font-mono);">{% if item.discount > 0 %}-{{ CURRENCY_SYMBOL }} {{ item.discount }}{% else %}—{% endif %}</td>
+              <td style="text-align: right; font-weight: 700; font-family: var(--font-mono); color: var(--brand-ink);">
+                {{ CURRENCY_SYMBOL }} {{ item.line_total|intcomma }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Returns History if applicable -->
+    {% if returns %}
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Returns on this Order</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Return #</th>
+              <th>Date</th>
+              <th>Refund Amount</th>
+              <th>Reason</th>
+              <th>Processed By</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in returns %}
+            <tr>
+              <td style="font-family: var(--font-mono);">#{{ r.id }}</td>
+              <td style="font-size: 0.8rem;">{{ r.created_at|date:"d M Y, H:i" }}</td>
+              <td style="font-weight: 700; color: var(--danger-500); font-family: var(--font-mono);">{{ CURRENCY_SYMBOL }} {{ r.refund_amount|intcomma }}</td>
+              <td>{{ r.reason }}</td>
+              <td style="font-size: 0.8rem; color: var(--text-muted);">{{ r.processed_by.username|default:"System" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: Payment, Customer, and Action Controls -->
+  <div style="min-width: 0;">
+    <!-- Commercial Summary Card -->
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="card-header">
+        <h3 class="card-title">Payment Summary</h3>
+      </div>
+      <div class="card-body">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem;">
+          <span style="color: var(--text-muted);">Subtotal:</span>
+          <span style="font-family: var(--font-mono);">{{ CURRENCY_SYMBOL }} {{ sale.subtotal|intcomma }}</span>
+        </div>
+        {% if sale.discount_amount > 0 %}
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; color: var(--success-600);">
+          <span>Order Discount:</span>
+          <span style="font-family: var(--font-mono);">-{{ CURRENCY_SYMBOL }} {{ sale.discount_amount|intcomma }}</span>
+        </div>
+        {% endif %}
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.2rem; font-weight: 800; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+          <span>Grand Total:</span>
+          <span style="color: var(--brand-primary); font-family: var(--font-mono);">{{ CURRENCY_SYMBOL }} {{ sale.grand_total|intcomma }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem;">
+          <span style="color: var(--text-muted);">Method:</span>
+          <span class="badge badge-brand">{{ sale.payment.get_payment_method_display }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem;">
+          <span style="color: var(--text-muted);">Paid Amount:</span>
+          <span style="font-family: var(--font-mono); font-weight: 600;">{{ CURRENCY_SYMBOL }} {{ sale.amount_paid|intcomma }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 0.9rem;">
+          <span style="color: var(--text-muted);">Change Given:</span>
+          <span style="font-family: var(--font-mono); font-weight: 600; color: var(--success-600);">{{ CURRENCY_SYMBOL }} {{ sale.change_amount|intcomma }}</span>
+        </div>
+
+        {% if sale.invoice %}
+        <a href="{% url 'invoices:print' sale.invoice.pk %}" target="_blank" class="btn btn-primary" style="width: 100%; margin-bottom: 10px;">
+          <i class="ph-bold ph-printer"></i> Print Thermal Receipt
+        </a>
+        {% endif %}
+
+        {% if IS_MANAGER_ROLE and sale.status == 'COMPLETED' %}
+        <form method="post" action="{% url 'sales:cancel' sale.pk %}" onsubmit="return confirm('Are you sure you want to cancel this sale? All inventory items will be automatically restored to the ledger.');">
+          {% csrf_token %}
+          <input type="hidden" name="reason" value="Manager administrative cancellation">
+          <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;">
+            <i class="ph-bold ph-x-circle"></i> Cancel Sale & Restore Stock
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Customer Card -->
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title">Customer Profile</h3>
+        <span class="badge badge-purple">{{ sale.get_order_channel_display }}</span>
+      </div>
+      <div class="card-body">
+        <div style="font-size: 0.95rem; font-weight: 700; margin-bottom: 6px;">
+          {{ sale.customer_name|default:"Walk-in Customer" }}
+        </div>
+        {% if sale.customer_phone %}
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">
+          <i class="ph-bold ph-phone" style="margin-right: 4px;"></i> {{ sale.customer_phone }}
+        </div>
+        {% endif %}
+        {% if sale.customer_email %}
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
+          <i class="ph-bold ph-envelope" style="margin-right: 4px;"></i> {{ sale.customer_email }}
+        </div>
+        {% endif %}
+
+        {% if sale.contact %}
+        <div style="margin-top: 10px; padding: 8px 10px; background: rgba(124,58,237,0.08); border-radius: var(--radius-md); border: 1px solid rgba(124,58,237,0.2);">
+          <a href="{% url 'messaging:contact_detail' sale.contact.pk %}" style="font-size: 0.8rem; color: var(--brand-primary); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+            <i class="ph-bold ph-chats-circle"></i> Open Contact Profile &amp; Chat History →
+          </a>
+        </div>
+        {% endif %}
+
+        <div style="border-top: 1px solid var(--border-subtle); margin-top: 14px; padding-top: 10px; font-size: 0.78rem; color: var(--text-muted);">
+          Cashier Operator: <strong>{{ sale.cashier.get_full_name|default:sale.cashier.username }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Steadfast Courier & Logistics Card -->
+    <div class="card">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title" style="display: flex; align-items: center; gap: 8px;">
+          <i class="ph-bold ph-truck" style="color: var(--brand-primary);"></i> Steadfast Courier
+        </h3>
+        <span class="badge {% if sale.courier_status == 'delivered' %}badge-success{% elif sale.courier_status == 'in_transit' %}badge-purple{% elif sale.courier_status != 'none' %}badge-warning{% else %}badge-neutral{% endif %}">
+          {{ sale.get_courier_status_display }}
+        </span>
+      </div>
+      <div class="card-body">
+        {% if sale.delivery_address %}
+        <div style="margin-bottom: 12px; font-size: 0.85rem;">
+          <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Delivery Address:</div>
+          <div style="color: var(--text-main); line-height: 1.5; background: var(--glass-bg-strong); padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            {{ sale.delivery_address }}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if sale.courier_tracking_code %}
+        <!-- Consignment Details -->
+        <div style="background: var(--glass-bg-strong); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px; margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.82rem;">
+            <span style="color: var(--text-muted);">Consignment ID:</span>
+            <span style="font-family: var(--font-mono); font-weight: 700;">{{ sale.courier_consignment_id }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.82rem;">
+            <span style="color: var(--text-muted);">Tracking Code:</span>
+            <span style="font-family: var(--font-mono); font-weight: 800; color: var(--brand-primary);">{{ sale.courier_tracking_code }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.82rem;">
+            <span style="color: var(--text-muted);">Dispatched At:</span>
+            <span>{{ sale.courier_booked_at|date:"d M Y, H:i"|default:"Recently" }}</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-direction: column;">
+          <a href="{{ sale.tracking_url }}" target="_blank" class="btn btn-outline btn-sm" style="width: 100%; justify-content: center; gap: 6px;">
+            <i class="ph-bold ph-arrow-square-out"></i> Track on Steadfast Portal
+          </a>
+          <form method="post" action="{% url 'sales:courier_sync' sale.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary btn-sm" style="width: 100%; justify-content: center; gap: 6px;">
+              <i class="ph-bold ph-arrows-clockwise"></i> Refresh Live Status
+            </button>
+          </form>
+        </div>
+
+        {% else %}
+        <!-- Not Yet Dispatched to Steadfast -->
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+          This order has not been dispatched to Steadfast Courier yet.
+        </p>
+
+        <form method="post" action="{% url 'sales:courier_dispatch' sale.pk %}">
+          {% csrf_token %}
+          <div style="margin-bottom: 10px;">
+            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">Delivery Note (Optional)</label>
+            <input type="text" name="note" value="Invoice {{ sale.invoice_number }}" class="form-control" style="width: 100%; padding: 6px 10px; font-size: 0.85rem; border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-subtle);">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(124,58,237,0.3);">
+            <i class="ph-bold ph-truck"></i> Book Steadfast Consignment
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

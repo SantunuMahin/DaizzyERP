@@ -1,0 +1,37 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Invoice {{ invoice.invoice_number }} · {{ STORE_NAME }}{% endblock %}
+{% block page_heading %}Invoice: {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 720px; margin: 0 auto;">
+  <div class="card-header">
+    <h3 class="card-title">Invoice Record & Snapshot</h3>
+    <a href="{% url 'invoices:print' invoice.pk %}" target="_blank" class="btn btn-primary btn-sm">
+      <i class="ph-bold ph-printer"></i> Open Print Template
+    </a>
+  </div>
+  <div class="card-body">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+      <div>
+        <div style="font-size: 0.75rem; color: var(--slate-500); text-transform: uppercase;">Invoice Code</div>
+        <div style="font-size: 1.2rem; font-weight: 800; font-family: var(--font-mono);">{{ invoice.invoice_number }}</div>
+      </div>
+      <div>
+        <div style="font-size: 0.75rem; color: var(--slate-500); text-transform: uppercase;">Print History</div>
+        <div style="font-weight: 600;">{{ invoice.print_count }} times (last: {{ invoice.last_printed_at|date:"d M Y, H:i"|default:"Never" }})</div>
+      </div>
+    </div>
+
+    <div style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; background: #ffffff; box-shadow: var(--shadow-sm);">
+      <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--slate-400); margin-bottom: 12px; letter-spacing: 0.05em;">
+        Archived Receipt HTML Snapshot
+      </div>
+      <div style="max-height: 480px; overflow-y: auto; border: 1px solid #eee; padding: 12px; background: #fafafa;">
+        {{ invoice.invoice_html|safe }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

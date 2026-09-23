@@ -1,0 +1,75 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Inventory Report · {{ STORE_NAME }}{% endblock %}
+{% block page_heading %}Inventory Valuation & Stock Status{% endblock %}
+
+{% block content %}
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-label">Total Inventory Valuation</div>
+    <div class="metric-value" style="color: var(--primary-600);">
+      {{ CURRENCY_SYMBOL }} {{ valuation.total_stock_value|floatformat:2|intcomma }}
+    </div>
+    <div class="metric-sub">Asset cost value currently held</div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-label">Total Physical Stock</div>
+    <div class="metric-value">{{ valuation.total_units|intcomma }}</div>
+    <div class="metric-sub">Total physical units in warehouse</div>
+  </div>
+</div>
+
+<!-- Low Stock Immediate Action Table -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Low Stock Alert List (Needs Reorder)</h3>
+    <a href="{% url 'inventory:adjust' %}" class="btn btn-primary btn-sm">
+      <i class="ph-bold ph-plus"></i> Inward Restock
+    </a>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>SKU</th>
+          <th>Barcode</th>
+          <th>Threshold</th>
+          <th>Current Balance</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in low_stock_products %}
+        <tr>
+          <td><strong>{{ p.name }}</strong></td>
+          <td><code>{{ p.sku }}</code></td>
+          <td><code style="color: var(--primary-600);">{{ p.barcode }}</code></td>
+          <td>{{ p.minimum_stock_level }} pcs</td>
+          <td>
+            {% if p.current_stock <= 0 %}
+              <span class="badge badge-danger">Out of Stock (0)</span>
+            {% else %}
+              <span class="badge badge-warning">Low: {{ p.current_stock }} pcs</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'inventory:adjust' %}?product={{ p.pk }}" class="btn btn-outline btn-sm">
+              Restock Item
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" style="text-align: center; color: var(--success-600); padding: 32px;">
+            All catalog items are currently stocked above their minimum threshold.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

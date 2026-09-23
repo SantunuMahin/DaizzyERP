@@ -1,0 +1,747 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>POS Terminal · {{ settings.store_name|default:"Daizzy.online" }}</title>
+  
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%234A5578'/><circle cx='50' cy='50' r='18' fill='%23F4F3EF'/><circle cx='50' cy='22' r='12' fill='%23B8BEDD'/><circle cx='50' cy='78' r='12' fill='%23B8BEDD'/><circle cx='22' cy='50' r='12' fill='%23B8BEDD'/><circle cx='78' cy='50' r='12' fill='%23B8BEDD'/></svg>">
+  <meta name="theme-color" content="#161A26">
+
+  <!-- Core Stylesheets & Icons -->
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+  
+  <!-- ZXing library for Camera Barcode Scanning -->
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
+
+  <style>
+    body {
+      background-color: var(--pos-bg, #161A26);
+      color: #FFFFFF;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      font-family: var(--font-sans);
+    }
+
+    /* POS Top Header */
+    .pos-header {
+      height: 56px;
+      background: var(--pos-surface, #202638);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .pos-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.15rem;
+    }
+
+    .pos-brand a {
+      color: #CBD5E1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .pos-brand a:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #FFFFFF;
+    }
+
+    .pos-meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 0.82rem;
+      color: #94A3B8;
+    }
+
+    /* Barcode Search Strip */
+    .pos-search-strip {
+      background: #1B2130;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .barcode-input-wrapper {
+      position: relative;
+      flex: 1;
+    }
+
+    .barcode-input-wrapper input {
+      width: 100%;
+      height: 46px;
+      background: #10131D;
+      border: 2px solid #4A5578;
+      border-radius: var(--radius-md);
+      padding: 0 16px 0 44px;
+      color: #FFFFFF;
+      font-size: 1rem;
+      font-family: var(--font-mono);
+      outline: none;
+      box-shadow: 0 0 14px rgba(74, 85, 120, 0.3);
+      transition: var(--transition);
+    }
+    .barcode-input-wrapper input:focus {
+      border-color: #B8BEDD;
+      box-shadow: 0 0 18px rgba(184, 190, 221, 0.35);
+    }
+
+    .barcode-input-wrapper i {
+      position: absolute;
+      left: 14px;
+      top: 13px;
+      font-size: 1.25rem;
+      color: #B8BEDD;
+    }
+
+    .btn-camera-trigger {
+      height: 46px;
+      padding: 0 16px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #4A5578, #2E3650);
+      color: #FFFFFF;
+      border: 1px solid rgba(184, 190, 221, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 0.86rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(46, 54, 80, 0.3);
+      white-space: nowrap;
+      transition: var(--transition);
+    }
+    .btn-camera-trigger:hover {
+      background: linear-gradient(135deg, #5A678E, #394362);
+    }
+    .btn-camera-trigger:active {
+      transform: scale(0.96);
+    }
+
+    /* Mobile Segmented Tab Bar (< 768px) */
+    .pos-mobile-tabs {
+      display: none;
+      background: #1A1F2C;
+      padding: 6px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 8px;
+    }
+    .pos-mobile-tab-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: #94A3B8;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .pos-mobile-tab-btn.active {
+      background: #4A5578;
+      color: #FFFFFF;
+      border-color: #B8BEDD;
+    }
+
+    /* POS Workspace Body */
+    .pos-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Cart Pane */
+    .pos-cart-pane {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      min-height: 0;
+      background: #161A26;
+    }
+
+    .cart-table-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 16px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .cart-table {
+      width: 100%;
+      border-collapse: collapse;
+      color: #FFFFFF;
+      font-size: 0.92rem;
+    }
+
+    .cart-table th {
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      color: #94A3B8;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    .cart-table td {
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      vertical-align: middle;
+    }
+
+    .cart-table tr.active-item {
+      background: rgba(74, 85, 120, 0.2);
+    }
+
+    .qty-controls {
+      display: inline-flex;
+      align-items: center;
+      background: #10131D;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      overflow: hidden;
+    }
+
+    .qty-btn {
+      width: 36px;
+      height: 36px;
+      background: none;
+      border: none;
+      color: #FFFFFF;
+      font-size: 1.15rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .qty-btn:active { background: rgba(255, 255, 255, 0.2); }
+
+    .qty-display {
+      min-width: 36px;
+      text-align: center;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+    }
+
+    /* Product Preview Pane */
+    .pos-preview-pane {
+      background: var(--pos-surface, #202638);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-y: auto;
+      gap: 16px;
+    }
+
+    /* Bottom Action Bar */
+    .pos-bottom-bar {
+      min-height: 78px;
+      background: #10131D;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .totals-box {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .total-big {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: #34D399;
+      font-family: var(--font-mono);
+      line-height: 1;
+    }
+
+    .btn-pay-now {
+      min-height: 52px;
+      padding: 0 28px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: #FFFFFF;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
+      transition: var(--transition);
+    }
+    .btn-pay-now:hover {
+      box-shadow: 0 6px 24px rgba(16, 185, 129, 0.45);
+    }
+    .btn-pay-now:active {
+      transform: scale(0.97);
+    }
+
+    /* Modals & Backdrops */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 12, 18, 0.78);
+      backdrop-filter: blur(6px);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+
+    .payment-modal {
+      width: 100%;
+      max-width: 520px;
+      background: #202638;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 24px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .payment-options-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 14px 0;
+    }
+
+    .payment-option-btn {
+      padding: 12px 8px;
+      background: #141824;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      text-align: center;
+      transition: var(--transition);
+    }
+    .payment-option-btn.selected {
+      border-color: #34D399;
+      background: rgba(52, 211, 153, 0.15);
+      color: #34D399;
+    }
+
+    /* Quick Cash Suggestion Pills */
+    .quick-cash-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .quick-cash-btn {
+      flex: 1;
+      min-width: 60px;
+      padding: 7px 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-sm);
+      color: #FFFFFF;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .quick-cash-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    /* Camera Scanner Reticle */
+    .scan-reticle {
+      position: absolute;
+      inset: 18%;
+      border: 2px solid #34D399;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
+      pointer-events: none;
+    }
+    .scan-laser {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #34D399, transparent);
+      box-shadow: 0 0 10px #34D399;
+      animation: laserSweep 2s ease-in-out infinite alternate;
+    }
+    @keyframes laserSweep {
+      0% { top: 5%; }
+      100% { top: 95%; }
+    }
+
+    /* Mobile Responsive Overrides */
+    @media (max-width: 767px) {
+      .pos-header {
+        padding: 0 12px;
+        height: 52px;
+      }
+      .pos-meta div:nth-child(2) {
+        display: none; /* Hide clock on small mobile header */
+      }
+
+      .pos-search-strip {
+        padding: 8px 10px;
+        gap: 8px;
+      }
+      .barcode-input-wrapper input {
+        height: 44px;
+        font-size: 0.95rem;
+      }
+      .btn-camera-trigger {
+        height: 44px;
+        padding: 0 12px;
+        font-size: 0.82rem;
+      }
+      .btn-camera-trigger span {
+        display: none;
+      }
+
+      .pos-mobile-tabs {
+        display: flex;
+      }
+
+      .pos-body {
+        grid-template-columns: 1fr;
+        position: relative;
+      }
+
+      .pos-preview-pane {
+        display: none; /* Controlled by mobile tabs */
+      }
+      .pos-preview-pane.active-mobile-pane {
+        display: flex;
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+      }
+
+      .cart-table th:nth-child(1),
+      .cart-table td:nth-child(1) {
+        display: none; /* Hide # index on phone */
+      }
+      .cart-table th:nth-child(3),
+      .cart-table td:nth-child(3) {
+        display: none; /* Hide unit price column; line total & name is enough */
+      }
+
+      .cart-table td {
+        padding: 10px 6px;
+      }
+
+      .pos-bottom-bar {
+        padding: 10px 14px;
+        min-height: 70px;
+      }
+
+      .totals-box {
+        gap: 12px;
+      }
+      .totals-box > div:first-child {
+        display: none; /* Hide subtotal label on phone to give space */
+      }
+      .total-big {
+        font-size: 1.45rem;
+      }
+
+      .btn-pay-now {
+        min-height: 48px;
+        padding: 0 18px;
+        font-size: 0.95rem;
+      }
+
+      .payment-modal {
+        padding: 18px;
+        border-radius: 20px 20px 0 0;
+        position: fixed;
+        bottom: 0;
+        max-height: 94vh;
+      }
+
+      .payment-options-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- POS Topbar -->
+  <header class="pos-header">
+    <div class="pos-brand">
+      <a href="{% url 'dashboard' %}" title="Back to Dashboard">
+        <i class="ph-bold ph-arrow-left"></i>
+      </a>
+      <span>{{ settings.store_name|default:"Daizzy" }}</span>
+      <span style="font-size: 0.7rem; background: rgba(52, 211, 153, 0.2); color: #34D399; padding: 2px 8px; border-radius: var(--radius-full); font-family: var(--font-sans); font-weight: 700;">
+        POS ACTIVE
+      </span>
+    </div>
+
+    <div class="pos-meta">
+      <div><i class="ph-bold ph-user"></i> <strong>{{ request.user.username }}</strong></div>
+      <div><i class="ph-bold ph-clock"></i> <span id="pos-clock">--:--</span></div>
+      <button type="button" onclick="toggleFullScreen()" class="btn btn-outline btn-sm" style="color: #FFFFFF; border-color: rgba(255,255,255,0.2); min-height: 32px; padding: 4px 8px;" title="Toggle Fullscreen">
+        <i class="ph-bold ph-arrows-out"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Barcode Scanner & Search Bar -->
+  <div class="pos-search-strip">
+    <div class="barcode-input-wrapper">
+      <i class="ph-bold ph-barcode"></i>
+      <input type="text" id="barcode-input" placeholder="Scan barcode or type name/SKU..." autofocus autocomplete="off">
+    </div>
+    <button type="button" id="btn-camera-scan" class="btn-camera-trigger" title="Camera Barcode Scanner">
+      <i class="ph-bold ph-camera"></i>
+      <span>Camera (F4)</span>
+    </button>
+  </div>
+
+  <!-- Mobile Segmented Tabs (< 768px Viewports) -->
+  <div class="pos-mobile-tabs" id="pos-mobile-tabs">
+    <button type="button" class="pos-mobile-tab-btn active" id="tab-btn-cart">
+      <i class="ph-bold ph-shopping-bag"></i> Cart (<span id="mobile-cart-badge">0</span>)
+    </button>
+    <button type="button" class="pos-mobile-tab-btn" id="tab-btn-preview">
+      <i class="ph-bold ph-info"></i> Item Details
+    </button>
+  </div>
+
+  <!-- Main POS Workspace Body -->
+  <div class="pos-body">
+    <!-- Cart Items Pane -->
+    <div class="pos-cart-pane" id="pos-cart-pane">
+      <div class="cart-table-wrapper">
+        <table class="cart-table">
+          <thead>
+            <tr>
+              <th style="width: 32px;">#</th>
+              <th>Product Details</th>
+              <th>Unit Price</th>
+              <th style="width: 120px; text-align: center;">Qty</th>
+              <th style="text-align: right;">Total</th>
+              <th style="width: 44px;"></th>
+            </tr>
+          </thead>
+          <tbody id="cart-items-body">
+            <!-- Dynamically populated by pos.js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Right: Active Item Details & Helper -->
+    <div class="pos-preview-pane" id="pos-preview-pane">
+      <div id="preview-container">
+        <div style="text-align: center; color: var(--pos-text-muted); padding: 40px 12px;">
+          <i class="ph-bold ph-barcode" style="font-size: 3rem; margin-bottom: 12px; display: block; opacity: 0.4; color: var(--brand-secondary);"></i>
+          Scan or search a product to inspect available stock and item details.
+        </div>
+      </div>
+
+      <!-- Retail Shortcuts Helper -->
+      <div style="background: rgba(0,0,0,0.3); border-radius: var(--radius-md); padding: 12px; font-size: 0.78rem; color: #94A3B8; border: 1px solid rgba(255,255,255,0.06);">
+        <div style="font-weight: 700; color: #FFFFFF; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          <i class="ph-bold ph-keyboard"></i> Quick Shortcuts
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <div><code>[F2]</code> Scan Input</div>
+          <div><code>[F4]</code> Camera Scanner</div>
+          <div><code>[F8]</code> Payment Panel</div>
+          <div><code>[F9]</code> Complete Sale</div>
+          <div><code>[Esc]</code> Cancel Modal</div>
+          <div><code>[+] / [-]</code> Adjust Qty</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Checkout Action Bar -->
+  <footer class="pos-bottom-bar">
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <button type="button" id="btn-clear-cart" class="btn btn-outline btn-sm" style="color: #F87171; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.08);">
+        <i class="ph-bold ph-trash"></i> <span style="display: none;" class="desktop-only-text">Clear (Esc)</span>
+      </button>
+      <div style="font-size: 0.84rem; color: #94A3B8;">
+        Items: <strong id="cart-item-count" style="color: #FFFFFF;">0</strong>
+      </div>
+    </div>
+
+    <div class="totals-box">
+      <div>
+        <div style="font-size: 0.72rem; color: #94A3B8; text-transform: uppercase;">Subtotal</div>
+        <div id="cart-subtotal" style="font-size: 1.05rem; font-weight: 600; font-family: var(--font-mono);">{{ settings.currency_symbol }} 0.00</div>
+      </div>
+      <div>
+        <div style="font-size: 0.72rem; color: #94A3B8; text-transform: uppercase;">Grand Total</div>
+        <div id="cart-grand-total" class="total-big">{{ settings.currency_symbol }} 0.00</div>
+      </div>
+      <button type="button" id="btn-open-payment" class="btn-pay-now">
+        <i class="ph-bold ph-credit-card"></i> Pay Now (F8)
+      </button>
+    </div>
+  </footer>
+
+  <!-- Checkout & Payment Modal -->
+  <div id="payment-modal" class="modal-backdrop">
+    <div class="payment-modal">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 1.25rem; font-weight: 700; font-family: var(--font-display);">Complete Sale</h3>
+        <button type="button" onclick="closePaymentModal()" style="background: none; border: none; color: #94A3B8; font-size: 1.6rem; cursor: pointer; padding: 4px;">&times;</button>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.05); padding: 14px 18px; border-radius: var(--radius-md); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.08);">
+        <span style="font-size: 0.9rem; color: #CBD5E1;">Payable Amount:</span>
+        <span id="modal-payable" style="font-size: 1.7rem; font-weight: 800; color: #34D399; font-family: var(--font-mono);">{{ settings.currency_symbol }} 0.00</span>
+      </div>
+
+      <div class="payment-options-grid">
+        <button type="button" class="payment-option-btn selected" data-method="CASH">Cash</button>
+        <button type="button" class="payment-option-btn" data-method="BKASH">bKash</button>
+        <button type="button" class="payment-option-btn" data-method="NAGAD">Nagad</button>
+        <button type="button" class="payment-option-btn" data-method="CARD">Card</button>
+        <button type="button" class="payment-option-btn" data-method="BANK">Bank</button>
+        <button type="button" class="payment-option-btn" data-method="OTHER">Other</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" style="color: #FFFFFF; font-size: 0.8rem;">Amount Tendered</label>
+          <input type="number" id="modal-amount-paid" class="form-input" style="font-size: 1.25rem; font-weight: 700; background: #10131D; color: #FFFFFF; border-color: rgba(255,255,255,0.2); font-family: var(--font-mono);">
+          <!-- Fast Cash Shortcuts -->
+          <div class="quick-cash-row">
+            <button type="button" class="quick-cash-btn" onclick="posCart.setExactCash()">Exact</button>
+            <button type="button" class="quick-cash-btn" onclick="posCart.addCash(100)">+100</button>
+            <button type="button" class="quick-cash-btn" onclick="posCart.addCash(500)">+500</button>
+            <button type="button" class="quick-cash-btn" onclick="posCart.addCash(1000)">+1000</button>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" style="color: #FFFFFF; font-size: 0.8rem;">Change Return</label>
+          <div id="modal-change-due" style="font-size: 1.3rem; font-weight: 800; color: #34D399; font-family: var(--font-mono); padding: 8px 0;">{{ settings.currency_symbol }} 0.00</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; margin-bottom: 18px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" style="color: #FFFFFF; font-size: 0.8rem;">Customer Name</label>
+          <input type="text" id="modal-customer-name" class="form-input" placeholder="Walk-in Customer" style="background: #10131D; color: #FFFFFF; border-color: rgba(255,255,255,0.2);">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" style="color: #FFFFFF; font-size: 0.8rem;">Phone Number</label>
+          <input type="text" id="modal-customer-phone" class="form-input" placeholder="017xxxxxxxx" style="background: #10131D; color: #FFFFFF; border-color: rgba(255,255,255,0.2);">
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+        <button type="button" onclick="closePaymentModal()" class="btn btn-outline" style="color: #FFFFFF; border-color: rgba(255,255,255,0.2);">Cancel (Esc)</button>
+        <button type="button" id="btn-confirm-sale" class="btn btn-primary" style="background: #10B981; border: none; font-weight: 700; padding: 10px 24px;">
+          <i class="ph-bold ph-check"></i> Complete Sale (F9)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Camera Barcode Scanner Modal -->
+  <div id="camera-modal" class="modal-backdrop">
+    <div class="payment-modal" style="max-width: 480px; text-align: center;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 style="font-size: 1.15rem; font-weight: 700; font-family: var(--font-display); display: flex; align-items: center; gap: 8px;">
+          <i class="ph-bold ph-camera" style="color: #34D399;"></i> Barcode Scanner
+        </h3>
+        <button type="button" onclick="closeCameraModal()" style="background: none; border: none; color: #94A3B8; font-size: 1.5rem; cursor: pointer;">&times;</button>
+      </div>
+
+      <div style="position: relative; width: 100%; height: 290px; background: #000000; border-radius: var(--radius-md); overflow: hidden; margin-bottom: 14px;">
+        <video id="camera-preview" style="width: 100%; height: 100%; object-fit: cover;"></video>
+        <div class="scan-reticle">
+          <div class="scan-laser"></div>
+        </div>
+      </div>
+
+      <p style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 16px;">
+        Point phone camera at any retail product barcode to scan.
+      </p>
+
+      <button type="button" onclick="closeCameraModal()" class="btn btn-outline" style="color: #FFFFFF; border-color: rgba(255,255,255,0.2); width: 100%;">
+        Close Camera
+      </button>
+    </div>
+  </div>
+
+  <!-- Multi-Product Search Results Modal -->
+  <div id="search-modal" class="modal-backdrop">
+    <div class="payment-modal" style="max-width: 620px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 style="font-size: 1.15rem; font-weight: 700; font-family: var(--font-display);">Matching Products Found</h3>
+        <button type="button" onclick="closeSearchModal()" style="background: none; border: none; color: #94A3B8; font-size: 1.5rem; cursor: pointer;">&times;</button>
+      </div>
+      <div style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 12px;">
+        Select an item to add to the active cart:
+      </div>
+      <div id="search-results-list" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+        <!-- Dynamically injected -->
+      </div>
+      <div style="margin-top: 16px; text-align: right;">
+        <button type="button" onclick="closeSearchModal()" class="btn btn-outline" style="color: #FFFFFF; border-color: rgba(255,255,255,0.2);">
+          Close (Esc)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="{% static 'js/core.js' %}"></script>
+  <script src="{% static 'js/pos.js' %}"></script>
+</body>
+</html>

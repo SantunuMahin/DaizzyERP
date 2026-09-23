@@ -1,0 +1,511 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}ERP Dashboard · {{ STORE_NAME|default:"Daizzy.online" }}{% endblock %}
+{% block page_heading %}ERP Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Dashboard-specific overrides ─────────────────────────────────────────── */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+/* SVG Chart */
+.chart-gradient-stop-1 { stop-color: #7C3AED; stop-opacity: 0.7; }
+.chart-gradient-stop-2 { stop-color: #06B6D4; stop-opacity: 0.02; }
+.chart-line { fill: none; stroke: url(#lineGradient); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.chart-area { fill: url(#areaGradient); }
+
+/* Donut chart */
+.donut-ring {
+  fill: none;
+  stroke-width: 24;
+  stroke-linecap: round;
+  transition: stroke-dasharray 1s ease;
+}
+
+/* Inventory status pills */
+.inv-status-in { background: rgba(16,185,129,0.12); color: #10B981; }
+.inv-status-low { background: rgba(245,158,11,0.12); color: #F59E0B; }
+.inv-status-out { background: rgba(239,68,68,0.12); color: #EF4444; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── HERO KPI ROW ─────────────────────────────────────────────────────── -->
+<div class="metrics-grid" style="margin-bottom: 22px;">
+
+  <!-- Revenue -->
+  <div class="metric-card revenue">
+    <div class="metric-header">
+      <span class="metric-label">Total Revenue</span>
+      <div class="metric-icon-badge purple">
+        <i class="ph-bold ph-currency-circle-dollar"></i>
+      </div>
+    </div>
+    <div class="metric-value" id="kpi-revenue">{{ CURRENCY_SYMBOL }} {{ today_revenue|floatformat:0|intcomma }}</div>
+    <div class="metric-sub">{{ today_orders }} order{{ today_orders|pluralize }} today</div>
+    <span class="metric-trend up"><i class="ph-bold ph-trend-up"></i> Today</span>
+  </div>
+
+  <!-- Low Stock -->
+  <div class="metric-card orders">
+    <div class="metric-header">
+      <span class="metric-label">Total Products</span>
+      <div class="metric-icon-badge blue">
+        <i class="ph-bold ph-package"></i>
+      </div>
+    </div>
+    <div class="metric-value" id="kpi-products">{{ total_products|intcomma }}</div>
+    <div class="metric-sub">Active catalog items</div>
+    <span class="metric-trend up"><i class="ph-bold ph-check-circle"></i> Live</span>
+  </div>
+
+  <!-- Out of Stock / Profit Placeholder -->
+  <div class="metric-card profit">
+    <div class="metric-header">
+      <span class="metric-label">Low Stock Alerts</span>
+      <div class="metric-icon-badge {% if low_stock_count > 0 %}yellow{% else %}green{% endif %}">
+        <i class="ph-bold ph-warning"></i>
+      </div>
+    </div>
+    <div class="metric-value" style="color: {% if low_stock_count > 0 %}var(--warning-500){% else %}var(--success-500){% endif %};">{{ low_stock_count }}</div>
+    <div class="metric-sub">Items below safety threshold</div>
+    <span class="metric-trend {% if low_stock_count > 0 %}down{% else %}up{% endif %}">
+      <i class="ph-bold ph-{% if low_stock_count > 0 %}warning{% else %}check-circle{% endif %}"></i>
+      {% if low_stock_count > 0 %}Action needed{% else %}All stocked{% endif %}
+    </span>
+  </div>
+
+  <!-- Customers -->
+  <div class="metric-card customers">
+    <div class="metric-header">
+      <span class="metric-label">Out of Stock</span>
+      <div class="metric-icon-badge red">
+        <i class="ph-bold ph-x-circle"></i>
+      </div>
+    </div>
+    <div class="metric-value" style="color: {% if out_of_stock_count > 0 %}var(--danger-500){% else %}var(--success-500){% endif %};">{{ out_of_stock_count }}</div>
+    <div class="metric-sub">Need immediate replenishment</div>
+    <span class="metric-trend {% if out_of_stock_count > 0 %}down{% else %}up{% endif %}">
+      <i class="ph-bold ph-arrow-right"></i>
+      {% if out_of_stock_count > 0 %}View Stock{% else %}All good{% endif %}
+    </span>
+  </div>
+
+</div>
+
+<!-- ── QUICK ACTIONS ───────────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom: 22px;">
+  <div class="card-body" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a href="{% url 'pos:terminal' %}" class="btn btn-success">
+        <i class="ph-bold ph-lightning"></i> Launch POS (F1)
+      </a>
+      <a href="{% url 'messaging:inbox' %}" class="btn btn-secondary">
+        <i class="ph-bold ph-chats-circle"></i> Open Messages
+      </a>
+      <a href="{% url 'inventory:adjust' %}" class="btn btn-outline btn-sm">
+        <i class="ph-bold ph-arrows-clockwise"></i> Adjust Stock
+      </a>
+      <a href="{% url 'products:create' %}" class="btn btn-outline btn-sm">
+        <i class="ph-bold ph-plus"></i> New Product
+      </a>
+      <a href="{% url 'barcode:print_labels' %}" class="btn btn-outline btn-sm">
+        <i class="ph-bold ph-barcode"></i> Print Barcodes
+      </a>
+    </div>
+    <div style="font-size: 0.78rem; color: var(--text-muted); display:flex; align-items:center; gap:6px;">
+      <i class="ph-bold ph-clock"></i>
+      <span>{{ "now"|date:"d M Y, H:i" }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN DASHBOARD GRID ─────────────────────────────────────────────── -->
+<div class="dashboard-grid">
+
+  <!-- LEFT COLUMN -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <!-- Sales Chart Card -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Sales Overview</h3>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:0.78rem; color:var(--text-muted);">Last 7 days</span>
+          <a href="{% url 'reports:sales' %}" class="btn btn-outline btn-sm">View Report</a>
+        </div>
+      </div>
+      <div class="card-body" style="padding-bottom: 8px;">
+        <!-- Animated SVG chart -->
+        <div class="chart-container" style="height: 180px;">
+          <svg class="chart-area-svg" viewBox="0 0 700 160" preserveAspectRatio="none" id="sales-chart">
+            <defs>
+              <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#7C3AED"/>
+                <stop offset="100%" stop-color="#06B6D4"/>
+              </linearGradient>
+              <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" class="chart-gradient-stop-1"/>
+                <stop offset="100%" class="chart-gradient-stop-2"/>
+              </linearGradient>
+            </defs>
+            <!-- Grid lines -->
+            <line x1="0" y1="40" x2="700" y2="40" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+            <line x1="0" y1="80" x2="700" y2="80" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+            <line x1="0" y1="120" x2="700" y2="120" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+            <!-- Area fill -->
+            <path id="chart-area-path" class="chart-area" d="M0,160 L0,120 C117,80 233,60 350,45 C467,30 583,50 700,35 L700,160 Z"/>
+            <!-- Line -->
+            <path id="chart-line-path" class="chart-line" d="M0,120 C117,80 233,60 350,45 C467,30 583,50 700,35"/>
+            <!-- Data points -->
+            <g fill="#7C3AED">
+              <circle cx="0"   cy="120" r="5" fill="white" stroke="#7C3AED" stroke-width="2"/>
+              <circle cx="117" cy="80"  r="5" fill="white" stroke="#06B6D4" stroke-width="2"/>
+              <circle cx="233" cy="60"  r="5" fill="white" stroke="#7C3AED" stroke-width="2"/>
+              <circle cx="350" cy="45"  r="6" fill="#06B6D4" stroke="white" stroke-width="2"/>
+              <circle cx="467" cy="30"  r="5" fill="white" stroke="#7C3AED" stroke-width="2"/>
+              <circle cx="583" cy="50"  r="5" fill="white" stroke="#06B6D4" stroke-width="2"/>
+              <circle cx="700" cy="35"  r="5" fill="white" stroke="#7C3AED" stroke-width="2"/>
+            </g>
+            <!-- Day labels -->
+            <g fill="rgba(148,163,184,0.7)" font-size="11" font-family="Plus Jakarta Sans, sans-serif">
+              <text x="0"   y="155" text-anchor="middle">Mon</text>
+              <text x="117" y="155" text-anchor="middle">Tue</text>
+              <text x="233" y="155" text-anchor="middle">Wed</text>
+              <text x="350" y="155" text-anchor="middle">Thu</text>
+              <text x="467" y="155" text-anchor="middle">Fri</text>
+              <text x="583" y="155" text-anchor="middle">Sat</text>
+              <text x="700" y="155" text-anchor="middle">Sun</text>
+            </g>
+          </svg>
+        </div>
+        <!-- Chart footer value -->
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;">Today's Revenue</div>
+            <div style="font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg, #A78BFA, #06B6D4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-family: var(--font-sans);">
+              {{ CURRENCY_SYMBOL }} {{ today_revenue|floatformat:2|intcomma }}
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Orders Today</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-main);">{{ today_orders }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Sales Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Recent Sales Orders</h3>
+        <a href="{% url 'sales:list' %}" class="btn btn-outline btn-sm">View All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>Cashier</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th style="text-align:right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sale in recent_sales %}
+            <tr>
+              <td>
+                <strong><a href="{% url 'sales:detail' sale.pk %}">{{ sale.invoice_number }}</a></strong>
+                <div style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono);">{{ sale.created_at|date:"h:i A" }}</div>
+              </td>
+              <td>{{ sale.cashier.username|default:"System" }}</td>
+              <td style="font-weight:700; font-family:var(--font-mono);">
+                <span style="background: linear-gradient(135deg,#A78BFA,#06B6D4); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;">
+                  {{ CURRENCY_SYMBOL }} {{ sale.grand_total|intcomma }}
+                </span>
+              </td>
+              <td>
+                <span class="badge {% if sale.status == 'COMPLETED' %}badge-success{% elif sale.status == 'CANCELLED' %}badge-danger{% else %}badge-warning{% endif %}">
+                  {{ sale.get_status_display }}
+                </span>
+              </td>
+              <td style="text-align:right;">
+                {% if sale.invoice %}
+                <a href="{% url 'invoices:print' sale.invoice.pk %}" target="_blank" class="btn btn-outline btn-sm" title="Print">
+                  <i class="ph-bold ph-printer"></i>
+                </a>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5">
+                <div class="empty-state" style="padding: 32px 16px;">
+                  <div class="empty-state-icon"><i class="ph-bold ph-receipt"></i></div>
+                  <h3>No sales yet today</h3>
+                  <p>Launch the POS terminal to start selling.</p>
+                  <a href="{% url 'pos:terminal' %}" class="btn btn-primary btn-sm" style="margin-top:8px;">
+                    <i class="ph-bold ph-lightning"></i> Open POS
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Inventory Overview -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Inventory Overview</h3>
+        <a href="{% url 'inventory:overview' %}" class="btn btn-outline btn-sm">Full Stock</a>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Category</th>
+              <th>Stock</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in recent_movements %}
+            <tr>
+              <td>
+                <strong>{{ m.product.name }}</strong>
+                <div style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono);">{{ m.product.barcode }}</div>
+              </td>
+              <td>
+                <span class="badge badge-neutral" style="font-size:0.68rem;">{{ m.get_transaction_type_display }}</span>
+              </td>
+              <td style="font-weight:700; font-family:var(--font-mono); color: {% if m.direction > 0 %}var(--success-500){% else %}var(--danger-500){% endif %};">
+                {% if m.direction > 0 %}+{% else %}-{% endif %}{{ m.quantity }}
+              </td>
+              <td>
+                <span style="font-size:0.78rem; color:var(--text-muted);">{{ m.previous_quantity }} → <strong style="color:var(--text-main);">{{ m.new_quantity }}</strong></span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" style="text-align:center; color:var(--text-muted); padding:28px;">
+                No recent stock movements.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /LEFT COLUMN -->
+
+  <!-- RIGHT COLUMN -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <!-- Finance Summary -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Finance Summary</h3>
+      </div>
+      <div class="card-body">
+        <!-- Donut chart (SVG) -->
+        <div style="display:flex; justify-content:center; margin-bottom: 18px;">
+          <div style="position:relative; width:130px; height:130px;">
+            <svg viewBox="0 0 100 100" style="width:100%; height:100%; transform: rotate(-90deg);">
+              <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="18"/>
+              <!-- Assets segment ~55% = 207deg -->
+              <circle cx="50" cy="50" r="38" class="donut-ring" stroke="#7C3AED"
+                stroke-dasharray="131 238" stroke-dashoffset="0"/>
+              <!-- Liabilities segment ~25% = 94.25deg -->
+              <circle cx="50" cy="50" r="38" class="donut-ring" stroke="#06B6D4"
+                stroke-dasharray="60 238" stroke-dashoffset="-131"/>
+              <!-- Equity segment ~20% = 75.4deg -->
+              <circle cx="50" cy="50" r="38" class="donut-ring" stroke="#10B981"
+                stroke-dasharray="47 238" stroke-dashoffset="-191"/>
+            </svg>
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+              <div style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em;">Balance</div>
+              <div style="font-size:1rem; font-weight:800; color:var(--text-main);">{{ CURRENCY_SYMBOL }} {{ today_revenue|floatformat:0|intcomma }}</div>
+            </div>
+          </div>
+        </div>
+        <!-- Legend -->
+        <div class="finance-legend">
+          <div class="finance-legend-item">
+            <span class="finance-legend-dot" style="background:#7C3AED;"></span>
+            <span class="finance-legend-label">Assets</span>
+            <span class="finance-legend-val">{{ CURRENCY_SYMBOL }} {{ today_revenue|floatformat:0|intcomma }}</span>
+          </div>
+          <div class="finance-legend-item">
+            <span class="finance-legend-dot" style="background:#06B6D4;"></span>
+            <span class="finance-legend-label">Liabilities</span>
+            <span class="finance-legend-val" style="color:var(--text-muted);">–</span>
+          </div>
+          <div class="finance-legend-item">
+            <span class="finance-legend-dot" style="background:#10B981;"></span>
+            <span class="finance-legend-label">Equity</span>
+            <span class="finance-legend-val" style="color:var(--success-500);">{{ CURRENCY_SYMBOL }} {{ today_revenue|floatformat:0|intcomma }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messaging Hub Preview -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Messages Hub</h3>
+        <a href="{% url 'messaging:inbox' %}" class="btn btn-outline btn-sm">Open Inbox</a>
+      </div>
+      <div class="card-body" style="padding: 12px 16px;">
+        <!-- Platform Icons -->
+        <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+          <a href="{% url 'messaging:inbox' %}?platform=whatsapp" class="platform-tab wab" title="WhatsApp">
+            <span>💬</span> WhatsApp
+          </a>
+          <a href="{% url 'messaging:inbox' %}?platform=messenger" class="platform-tab msn" title="Messenger">
+            <span>💙</span> Messenger
+          </a>
+          <a href="{% url 'messaging:inbox' %}?platform=telegram" class="platform-tab tlg" title="Telegram">
+            <span>✈️</span> Telegram
+          </a>
+          <a href="{% url 'messaging:inbox' %}?platform=instagram" class="platform-tab ins" title="Instagram">
+            <span>📸</span> Instagram
+          </a>
+        </div>
+        <div style="text-align:center; padding: 16px 0; border-top: 1px solid var(--border-subtle);">
+          <i class="ph-bold ph-chats-circle" style="font-size: 2rem; color: var(--brand-primary); display:block; margin-bottom:8px;"></i>
+          <div style="font-size:0.85rem; color:var(--text-muted);">All your conversations in one place.</div>
+          <a href="{% url 'messaging:inbox' %}" class="btn btn-primary btn-sm" style="margin-top:12px;">
+            <i class="ph-bold ph-arrow-right"></i> Go to Inbox
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity Feed -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Recent Activities</h3>
+        <a href="{% url 'audit:list' %}" class="btn btn-outline btn-sm">View All</a>
+      </div>
+      <div class="card-body" style="padding: 0 22px;">
+        <div class="activity-feed">
+          {% for sale in recent_sales|slice:":5" %}
+          <div class="activity-item">
+            <div class="activity-icon" style="background: rgba(124,58,237,0.15);">
+              <i class="ph-bold ph-receipt" style="color: #A78BFA;"></i>
+            </div>
+            <div class="activity-body">
+              <div class="activity-title">Sale #{{ sale.invoice_number }}</div>
+              <div class="activity-meta">{{ sale.cashier.username|default:"System" }} · {{ sale.created_at|timesince }} ago</div>
+            </div>
+            <div>
+              <div class="activity-amount">{{ CURRENCY_SYMBOL }} {{ sale.grand_total|intcomma }}</div>
+              <div class="activity-time">
+                <span class="badge {% if sale.status == 'COMPLETED' %}badge-success{% elif sale.status == 'CANCELLED' %}badge-danger{% else %}badge-warning{% endif %}" style="font-size: 0.6rem;">{{ sale.get_status_display }}</span>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="activity-item" style="justify-content:center; padding: 28px 0;">
+            <div style="text-align:center; color:var(--text-muted); font-size:0.83rem;">
+              <i class="ph-bold ph-clock" style="font-size:1.5rem; display:block; margin-bottom:6px;"></i>
+              No recent activity yet.
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock Movements -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Stock Movements</h3>
+        <a href="{% url 'inventory:transactions' %}" class="btn btn-outline btn-sm">Full Ledger</a>
+      </div>
+      <div class="card-body" style="padding: 0 22px;">
+        <div class="activity-feed">
+          {% for m in recent_movements|slice:":5" %}
+          <div class="activity-item">
+            <div class="activity-icon" style="background: {% if m.direction > 0 %}var(--success-50){% else %}var(--danger-50){% endif %};">
+              <i class="ph-bold ph-{% if m.direction > 0 %}arrow-circle-up{% else %}arrow-circle-down{% endif %}" style="color: {% if m.direction > 0 %}var(--success-500){% else %}var(--danger-500){% endif %};"></i>
+            </div>
+            <div class="activity-body">
+              <div class="activity-title">{{ m.product.name }}</div>
+              <div class="activity-meta">{{ m.get_transaction_type_display }} · {{ m.created_at|timesince }} ago</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="activity-amount" style="color: {% if m.direction > 0 %}var(--success-500){% else %}var(--danger-500){% endif %};">
+                {% if m.direction > 0 %}+{% else %}-{% endif %}{{ m.quantity }}
+              </div>
+              <div class="activity-time">→ {{ m.new_quantity }} units</div>
+            </div>
+          </div>
+          {% empty %}
+          <div style="text-align:center; color:var(--text-muted); padding: 28px; font-size:0.83rem;">
+            No recent movements.
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /RIGHT COLUMN -->
+</div><!-- /dashboard-grid -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Animated counter for KPI cards
+function animateCounter(el, target, prefix, suffix) {
+  const duration = 1200;
+  const start = performance.now();
+  const from = 0;
+  function update(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const current = Math.floor(from + (target - from) * ease);
+    el.innerHTML = prefix + current.toLocaleString() + suffix;
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Revenue counter
+  const revEl = document.getElementById('kpi-revenue');
+  if (revEl) {
+    const val = parseFloat("{{ today_revenue|floatformat:0 }}") || 0;
+    animateCounter(revEl, val, '{{ CURRENCY_SYMBOL }} ', '');
+  }
+
+  // Chart line animation
+  const linePath = document.getElementById('chart-line-path');
+  if (linePath) {
+    const len = linePath.getTotalLength ? linePath.getTotalLength() : 900;
+    linePath.style.strokeDasharray = len;
+    linePath.style.strokeDashoffset = len;
+    linePath.style.transition = 'stroke-dashoffset 1.8s cubic-bezier(0.4, 0, 0.2, 1)';
+    setTimeout(() => { linePath.style.strokeDashoffset = '0'; }, 200);
+  }
+});
+</script>
+{% endblock %}

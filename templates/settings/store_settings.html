@@ -1,0 +1,108 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Store Settings · {{ STORE_NAME }}{% endblock %}
+{% block page_heading %}Enterprise Store Configuration{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 840px; margin: 0 auto;">
+  <div class="card-header">
+    <h3 class="card-title">Commercial Branding & Hardware Parameters</h3>
+  </div>
+  <div class="card-body">
+    <form method="post" action="">
+      {% csrf_token %}
+
+      <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--slate-800); margin-bottom: 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
+        1. Store Branding & Identity
+      </h4>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Store Legal / Display Name</label>
+          {{ form.store_name }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Support Email</label>
+          {{ form.email }}
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Store Phone Number</label>
+          {{ form.phone }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Store Website URL</label>
+          {{ form.website }}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Store Physical Address</label>
+        {{ form.store_address }}
+      </div>
+
+      <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--slate-800); margin: 24px 0 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
+        2. Commercial & Fiscal Policy
+      </h4>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Currency Code</label>
+          {{ form.currency }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Currency Symbol</label>
+          {{ form.currency_symbol }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Low Stock Threshold</label>
+          {{ form.low_stock_threshold }}
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Default VAT / Tax Rate (%)</label>
+          {{ form.default_tax_rate }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Default Order Discount (%)</label>
+          {{ form.default_discount_rate }}
+        </div>
+      </div>
+
+      <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--slate-800); margin: 24px 0 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
+        3. Barcode & Thermal Receipt Settings
+      </h4>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Active Barcode Format Strategy</label>
+          {{ form.barcode_format }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Thermal Receipt Paper Width</label>
+          {{ form.receipt_width_mm }}
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Invoice Number Prefix</label>
+          {{ form.invoice_prefix }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Invoice Generation Format</label>
+          {{ form.invoice_number_format }}
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 12px;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; font-weight: 500;">
+          {{ form.allow_negative_stock }}
+          <span>Allow Negative Stock Overselling (Not recommended)</span>
+        </label>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
+        <button type="submit" class="btn btn-primary">Save Configuration</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

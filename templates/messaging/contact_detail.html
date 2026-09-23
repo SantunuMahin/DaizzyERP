@@ -1,0 +1,409 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ contact.name }} · Contacts{% endblock %}
+{% block page_heading %}{{ contact.name }}{% endblock %}
+
+{% block content %}
+
+<!-- Contact Profile Hero -->
+<div class="contact-profile-hero">
+  <div class="contact-profile-avatar" style="background: {{ contact.avatar_color }};">
+    {{ contact.initials }}
+  </div>
+  <div style="flex:1; min-width:0;">
+    <h1 style="font-size:1.5rem; font-weight:800; color:var(--text-main); font-family:var(--font-sans); margin-bottom:4px;">{{ contact.name }}</h1>
+    {% if contact.company %}<div style="font-size:0.9rem; color:var(--text-muted); margin-bottom:8px;">{{ contact.company }}</div>{% endif %}
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+      {% if contact.phone %}<span class="badge badge-neutral"><i class="ph-bold ph-phone"></i> {{ contact.phone }}</span>{% endif %}
+      {% if contact.email %}<span class="badge badge-neutral"><i class="ph-bold ph-envelope"></i> {{ contact.email }}</span>{% endif %}
+    </div>
+    <!-- Platform handles -->
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      {% if contact.whatsapp_number %}<span class="badge badge-whatsapp">💬 {{ contact.whatsapp_number }}</span>{% endif %}
+      {% if contact.messenger_id %}<span class="badge badge-messenger">💙 Messenger ID: {{ contact.messenger_id }}</span>{% endif %}
+      {% if contact.telegram_id or contact.telegram_username %}
+        <span class="badge badge-telegram">✈️ {% if contact.telegram_username %}@{{ contact.telegram_username }}{% else %}{{ contact.telegram_id }}{% endif %}</span>
+      {% endif %}
+      {% if contact.instagram_id %}<span class="badge badge-instagram">📸 {{ contact.instagram_id }}</span>{% endif %}
+      {% if contact.email %}<span class="badge badge-email">📧 {{ contact.email }}</span>{% endif %}
+    </div>
+    {% if contact.tag_list %}
+    <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:8px;">
+      {% for tag in contact.tag_list %}
+      <span class="badge badge-purple">{{ tag }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  <!-- Actions -->
+  <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+    <div style="display:flex; gap:8px;">
+      <a href="{% url 'messaging:contact_edit' contact.pk %}" class="btn btn-outline btn-sm">
+        <i class="ph-bold ph-pencil"></i> Edit
+      </a>
+      <button onclick="document.getElementById('contact-order-modal').style.display='flex'" class="btn btn-primary btn-sm" style="box-shadow: 0 4px 14px rgba(124,58,237,0.35);">
+        <i class="ph-bold ph-shopping-bag"></i> Create Order
+      </button>
+    </div>
+    <!-- Quick send buttons per platform -->
+    {% if contact.whatsapp_number %}
+    <a href="{% url 'messaging:inbox' %}" class="btn btn-sm badge-whatsapp" style="background:rgba(37,211,102,0.15); color:#25D366; border:1px solid rgba(37,211,102,0.3); gap:6px;">
+      💬 Send WhatsApp
+    </a>
+    {% endif %}
+    {% if contact.email %}
+    <a href="{% url 'messaging:inbox' %}" class="btn btn-sm" style="background:rgba(234,67,53,0.15); color:#EA4335; border:1px solid rgba(234,67,53,0.3); gap:6px;">
+      📧 Send Email
+    </a>
+    {% endif %}
+    {% if contact.telegram_id or contact.telegram_username %}
+    <a href="{% url 'messaging:inbox' %}" class="btn btn-sm" style="background:rgba(42,171,238,0.15); color:#2AABEE; border:1px solid rgba(42,171,238,0.3); gap:6px;">
+      ✈️ Send Telegram
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs-nav" id="contact-tabs">
+  <a href="#orders" class="tab-link active" onclick="switchTab(event,'tab-orders')">
+    <i class="ph-bold ph-shopping-bag"></i> Orders &amp; Deliveries ({{ total_orders|default:0 }})
+  </a>
+  <a href="#messages" class="tab-link" onclick="switchTab(event,'tab-messages')">
+    <i class="ph-bold ph-chats"></i> Messages ({{ recent_messages|length }})
+  </a>
+  <a href="#conversations" class="tab-link" onclick="switchTab(event,'tab-conversations')">
+    <i class="ph-bold ph-list-bullets"></i> Conversations ({{ conversations|length }})
+  </a>
+  <a href="#notes" class="tab-link" onclick="switchTab(event,'tab-notes')">
+    <i class="ph-bold ph-note-pencil"></i> Notes
+  </a>
+</div>
+
+<!-- Tab: Orders & Deliveries -->
+<div id="tab-orders">
+  <!-- Stats Row -->
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:18px;">
+    <div class="card" style="padding:16px 20px; border-left:4px solid var(--brand-primary);">
+      <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">Total Orders</div>
+      <div style="font-size:1.6rem; font-weight:800; color:var(--text-main); font-family:var(--font-mono); margin-top:4px;">{{ total_orders|default:0 }}</div>
+    </div>
+    <div class="card" style="padding:16px 20px; border-left:4px solid #10B981;">
+      <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">Lifetime Spent</div>
+      <div style="font-size:1.6rem; font-weight:800; color:#10B981; font-family:var(--font-mono); margin-top:4px;">৳ {{ total_spent|default:0|floatformat:2 }}</div>
+    </div>
+    <div class="card" style="padding:16px 20px; border-left:4px solid #F59E0B;">
+      <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700;">Primary Courier</div>
+      <div style="font-size:1.15rem; font-weight:700; color:var(--text-main); margin-top:6px; display:flex; align-items:center; gap:6px;">
+        <span class="badge badge-warning" style="font-size:0.85rem;">Steadfast Courier</span>
+      </div>
+    </div>
+  </div>
+
+  {% if orders %}
+  <div class="card">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Invoice #</th>
+            <th>Date</th>
+            <th>Items</th>
+            <th>Grand Total</th>
+            <th>Payment</th>
+            <th>Order Channel</th>
+            <th>Steadfast Courier Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ord in orders %}
+          <tr>
+            <td>
+              <a href="{% url 'sales:detail' ord.pk %}" style="font-weight:700; font-family:var(--font-mono); color:var(--brand-primary);">
+                {{ ord.invoice_number }}
+              </a>
+            </td>
+            <td style="font-size:0.8rem; color:var(--text-muted);">{{ ord.created_at|date:"d M Y, H:i" }}</td>
+            <td style="font-family:var(--font-mono); font-weight:600;">{{ ord.items.count }} item{{ ord.items.count|pluralize }}</td>
+            <td style="font-weight:800; font-family:var(--font-mono);">৳ {{ ord.grand_total }}</td>
+            <td>
+              <span class="badge {% if ord.payment_status == 'PAID' %}badge-success{% elif ord.payment_status == 'PARTIAL' %}badge-warning{% else %}badge-neutral{% endif %}">
+                {{ ord.get_payment_status_display }}
+              </span>
+            </td>
+            <td>
+              <span class="badge badge-purple" style="font-size:0.75rem;">
+                {{ ord.get_order_channel_display }}
+              </span>
+            </td>
+            <td>
+              {% if ord.courier_tracking_code %}
+                <div style="display:flex; flex-direction:column; gap:3px;">
+                  <span class="badge {% if ord.courier_status == 'delivered' %}badge-success{% elif ord.courier_status == 'in_transit' %}badge-purple{% else %}badge-warning{% endif %}">
+                    {{ ord.get_courier_status_display }}
+                  </span>
+                  <a href="{{ ord.tracking_url }}" target="_blank" style="font-size:0.75rem; color:var(--brand-primary); font-family:var(--font-mono);">
+                    <i class="ph-bold ph-arrow-square-out"></i> {{ ord.courier_tracking_code }}
+                  </a>
+                </div>
+              {% else %}
+                <span class="badge badge-neutral">Not Dispatched</span>
+              {% endif %}
+            </td>
+            <td>
+              <div style="display:flex; gap:6px;">
+                <a href="{% url 'sales:detail' ord.pk %}" class="btn btn-outline btn-sm" title="View Order">
+                  <i class="ph-bold ph-eye"></i> View
+                </a>
+                {% if not ord.courier_tracking_code %}
+                <form method="post" action="{% url 'sales:courier_dispatch' ord.pk %}" style="margin:0;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-primary btn-sm" title="Send to Steadfast" style="padding:4px 8px; font-size:0.75rem;">
+                    <i class="ph-bold ph-truck"></i> Dispatch
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state card" style="padding:40px 20px;">
+    <div class="empty-state-icon"><i class="ph-bold ph-shopping-bag"></i></div>
+    <h3>No orders placed yet</h3>
+    <p>Click "Create Order" above to place an order for {{ contact.name }} and connect it with Steadfast Courier.</p>
+    <button onclick="document.getElementById('contact-order-modal').style.display='flex'" class="btn btn-primary" style="margin-top:12px;">
+      <i class="ph-bold ph-plus"></i> Create First Order
+    </button>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Tab: Messages -->
+<div id="tab-messages" style="display:none;">
+  {% if recent_messages %}
+  <div class="card">
+    <div style="display:flex; flex-direction:column; gap:0; padding: 0 22px;">
+      {% for msg in recent_messages %}
+      <div class="activity-item">
+        <div class="activity-icon"
+             style="background: {% if msg.is_outbound %}var(--brand-primary-light){% else %}var(--glass-bg-strong){% endif %};">
+          <i class="ph-bold ph-{% if msg.is_outbound %}paper-plane-tilt{% else %}chat-dots{% endif %}"
+             style="color: {% if msg.is_outbound %}#A78BFA{% else %}var(--text-muted){% endif %};"></i>
+        </div>
+        <div class="activity-body">
+          <div class="activity-title" style="font-size:0.84rem;">{{ msg.body|truncatechars:80 }}</div>
+          <div class="activity-meta">
+            {% if msg.is_outbound %}Sent by {{ msg.sent_by.username|default:"System" }}{% else %}Received{% endif %}
+            · {{ msg.created_at|date:"d M Y, H:i" }}
+          </div>
+        </div>
+        <div>
+          <span class="badge badge-{{ msg.conversation.platform|slice:':3' }}">{{ msg.conversation.get_platform_display }}</span>
+          {% if msg.is_outbound %}
+          <div style="margin-top:4px;">
+            {% if msg.is_delivered %}<span class="badge badge-success">Delivered</span>{% else %}<span class="badge badge-warning">Pending</span>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon"><i class="ph-bold ph-chat-dots"></i></div>
+    <h3>No messages yet</h3>
+    <p>Start a conversation with {{ contact.name }} using any platform above.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Tab: Conversations -->
+<div id="tab-conversations" style="display:none;">
+  <div class="card">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Platform</th>
+            <th>Status</th>
+            <th>Messages</th>
+            <th>Last Activity</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for conv in conversations %}
+          <tr>
+            <td>
+              <span class="badge badge-{{ conv.platform|slice:':3' }}">
+                {% if conv.platform == 'whatsapp' %}💬{% elif conv.platform == 'messenger' %}💙{% elif conv.platform == 'telegram' %}✈️{% elif conv.platform == 'instagram' %}📸{% elif conv.platform == 'email' %}📧{% endif %}
+                {{ conv.get_platform_display }}
+              </span>
+            </td>
+            <td><span class="badge {% if conv.status == 'open' %}badge-success{% else %}badge-neutral{% endif %}">{{ conv.get_status_display }}</span></td>
+            <td>{{ conv.messages.count }}</td>
+            <td style="font-size:0.8rem; color:var(--text-muted);">{{ conv.updated_at|date:"d M Y, H:i" }}</td>
+            <td>
+              <a href="{% url 'messaging:inbox' %}?conv={{ conv.pk }}" class="btn btn-outline btn-sm">
+                <i class="ph-bold ph-arrow-right"></i> Open
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:28px;">No conversations yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Notes -->
+<div id="tab-notes" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+      {% if contact.notes %}
+      <div style="font-size:0.9rem; color:var(--text-main); line-height:1.7; white-space:pre-wrap;">{{ contact.notes }}</div>
+      {% else %}
+      <div class="empty-state" style="padding:28px 0;">
+        <div class="empty-state-icon"><i class="ph-bold ph-note-pencil"></i></div>
+        <h3>No notes yet</h3>
+        <p>Edit the contact to add notes.</p>
+      </div>
+      {% endif %}
+      <div style="margin-top:16px; border-top:1px solid var(--border-subtle); padding-top:16px;">
+        <a href="{% url 'messaging:contact_edit' contact.pk %}" class="btn btn-outline btn-sm">
+          <i class="ph-bold ph-pencil"></i> Edit Contact &amp; Notes
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Contact Quick Order Modal -->
+<div id="contact-order-modal" class="modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(4px); padding:20px;">
+  <div class="card" style="width:100%; max-width:540px; max-height:90vh; overflow-y:auto; border:1px solid var(--border-subtle); box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 class="card-title" style="display:flex; align-items:center; gap:8px;">
+        <i class="ph-bold ph-shopping-bag" style="color:var(--brand-primary);"></i>
+        Create Order for {{ contact.name }}
+      </h3>
+      <button onclick="document.getElementById('contact-order-modal').style.display='none'" class="btn btn-outline btn-sm" style="padding:4px 8px;">✕</button>
+    </div>
+    <form method="post" action="{% url 'messaging:quick_order_create' %}" style="padding:20px;">
+      {% csrf_token %}
+      <input type="hidden" name="contact_id" value="{{ contact.pk }}">
+
+      <!-- Product Picker -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:5px; color:var(--text-main);">Select Product *</label>
+        <select name="product_id" id="modal-product-select" class="form-control" required style="width:100%; padding:9px 12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);" onchange="updateModalPrice(this)">
+          <option value="">-- Choose Catalog Product --</option>
+          {% for p in products %}
+          <option value="{{ p.pk }}" data-price="{{ p.current_price }}" data-sku="{{ p.sku }}">{{ p.name }} (Stock: {{ p.inventory.quantity|default:0 }}) — ৳{{ p.current_price }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+        <div>
+          <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:5px; color:var(--text-main);">Quantity *</label>
+          <input type="number" name="quantity" id="modal-product-qty" value="1" min="1" class="form-control" required style="width:100%; padding:9px 12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);" oninput="recalcModalTotal()">
+        </div>
+        <div>
+          <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:5px; color:var(--text-main);">Unit Price (৳)</label>
+          <input type="number" step="0.01" name="unit_price" id="modal-product-price" value="0.00" class="form-control" required style="width:100%; padding:9px 12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);" oninput="recalcModalTotal()">
+        </div>
+      </div>
+
+      <!-- Channel & Payment -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+        <div>
+          <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:5px; color:var(--text-main);">Order Channel</label>
+          <select name="order_channel" class="form-control" style="width:100%; padding:9px 12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);">
+            <option value="ONLINE">Online Store</option>
+            <option value="WHATSAPP" selected>WhatsApp Order</option>
+            <option value="MESSENGER">Facebook Messenger</option>
+            <option value="TELEGRAM">Telegram</option>
+            <option value="PHONE">Phone Call</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:5px; color:var(--text-main);">Payment Method</label>
+          <select name="payment_method" class="form-control" style="width:100%; padding:9px 12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);">
+            <option value="CASH">Cash on Delivery (COD)</option>
+            <option value="BKASH">bKash Mobile Wallet</option>
+            <option value="NAGAD">Nagad Mobile Wallet</option>
+            <option value="CARD">Debit / Credit Card</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Delivery Address -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:5px; color:var(--text-main);">Delivery Street Address *</label>
+        <textarea name="delivery_address" rows="2" class="form-control" required placeholder="House, Road, Area, Thana, District" style="width:100%; padding:9px 12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);">{{ contact.notes|truncatechars:100|default:"" }}</textarea>
+      </div>
+
+      <!-- Steadfast Courier Auto-Dispatch Toggle -->
+      <div style="margin-bottom:18px; padding:12px 14px; border-radius:var(--radius-md); background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); display:flex; align-items:center; gap:10px;">
+        <input type="checkbox" name="auto_dispatch_courier" id="auto_dispatch_courier" checked style="width:18px; height:18px; accent-color:var(--brand-primary); cursor:pointer;">
+        <label for="auto_dispatch_courier" style="font-size:0.84rem; cursor:pointer; color:var(--text-main); line-height:1.4;">
+          <strong>Book on Steadfast Courier automatically</strong><br>
+          <span style="font-size:0.75rem; color:var(--text-muted);">Generates Steadfast consignment &amp; tracking code immediately upon order confirmation.</span>
+        </label>
+      </div>
+
+      <!-- Total Preview -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; padding-top:10px; border-top:1px solid var(--border-subtle);">
+        <span style="font-weight:700; color:var(--text-muted); font-size:0.95rem;">Order Grand Total:</span>
+        <span id="modal-total-display" style="font-size:1.35rem; font-weight:800; color:var(--brand-primary); font-family:var(--font-mono);">৳ 0.00</span>
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <button type="button" onclick="document.getElementById('contact-order-modal').style.display='none'" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="box-shadow:0 4px 14px rgba(124,58,237,0.4);">
+          <i class="ph-bold ph-check-circle"></i> Confirm &amp; Place Order
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchTab(e, targetId) {
+  e.preventDefault();
+  document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+  ['tab-orders','tab-messages','tab-conversations','tab-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = id === targetId ? 'block' : 'none';
+  });
+}
+
+function updateModalPrice(selectEl) {
+  const opt = selectEl.options[selectEl.selectedIndex];
+  const price = opt.getAttribute('data-price') || '0.00';
+  document.getElementById('modal-product-price').value = price;
+  recalcModalTotal();
+}
+
+function recalcModalTotal() {
+  const qty = parseFloat(document.getElementById('modal-product-qty').value) || 0;
+  const price = parseFloat(document.getElementById('modal-product-price').value) || 0;
+  const total = qty * price;
+  document.getElementById('modal-total-display').innerText = '৳ ' + total.toFixed(2);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,237 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Messaging Platform Settings · Daizzy{% endblock %}
+{% block page_heading %}Platform Settings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">Messaging <span class="gradient-text">Platform Settings</span></h1>
+    <p class="page-header-subtitle">Connect your API credentials for each platform. Toggle platforms on/off individually.</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'messaging:inbox' %}" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-arrow-left"></i> Back to Inbox
+    </a>
+  </div>
+</div>
+
+<!-- WhatsApp -->
+<div class="platform-config-card" style="margin-bottom: 20px;">
+  <div class="platform-config-header">
+    <div class="platform-config-icon wab">💬</div>
+    <div style="flex:1;">
+      <div class="platform-config-name">WhatsApp Business API</div>
+      <div class="platform-config-desc">Meta Graph API — send and receive WhatsApp messages</div>
+    </div>
+    <label class="toggle-switch" title="Enable/disable WhatsApp">
+      <input type="checkbox" id="wab-toggle" {% if configs.whatsapp and configs.whatsapp.is_active %}checked{% endif %}
+             onchange="document.getElementById('wab-form').style.display=this.checked?'block':'none'">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <form method="post" id="wab-form" {% if not configs.whatsapp or not configs.whatsapp.is_active %}style="display:none"{% endif %}>
+    {% csrf_token %}
+    <input type="hidden" name="platform" value="whatsapp">
+    <input type="hidden" name="is_active" value="on">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px;">
+      <div class="form-group">
+        <label class="form-label">Access Token (Permanent)</label>
+        <input type="password" name="access_token" class="form-control" value="{{ configs.whatsapp.access_token|default:'' }}" placeholder="EAAxxxx...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone Number ID</label>
+        <input type="text" name="phone_number_id" class="form-control" value="{{ configs.whatsapp.phone_number_id|default:'' }}" placeholder="1234567890">
+      </div>
+      <div class="form-group">
+        <label class="form-label">WhatsApp Business Account ID</label>
+        <input type="text" name="business_account_id" class="form-control" value="{{ configs.whatsapp.business_account_id|default:'' }}" placeholder="Account ID">
+      </div>
+      <div class="form-group">
+        <label class="form-label">App ID</label>
+        <input type="text" name="app_id" class="form-control" value="{{ configs.whatsapp.app_id|default:'' }}" placeholder="Meta App ID">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Webhook Verify Token (you set this)</label>
+        <input type="text" name="webhook_verify_token" class="form-control" value="{{ configs.whatsapp.webhook_verify_token|default:'' }}" placeholder="my-secret-verify-token">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Your Webhook URL (copy to Meta Dashboard)</label>
+        <div class="webhook-url-display">
+          <span class="webhook-url-text" id="wa-webhook-url">{{ request.scheme }}://{{ request.get_host }}/messaging/webhooks/whatsapp/</span>
+          <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('wa-webhook-url').textContent)" class="btn btn-outline btn-sm" style="padding:4px 8px;">
+            <i class="ph-bold ph-copy"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-success">
+      <i class="ph-bold ph-floppy-disk"></i> Save WhatsApp Config
+    </button>
+  </form>
+</div>
+
+<!-- Messenger -->
+<div class="platform-config-card" style="margin-bottom: 20px;">
+  <div class="platform-config-header">
+    <div class="platform-config-icon msn">💙</div>
+    <div style="flex:1;">
+      <div class="platform-config-name">Facebook Messenger</div>
+      <div class="platform-config-desc">Meta Graph API — Send API for Messenger</div>
+    </div>
+    <label class="toggle-switch">
+      <input type="checkbox" id="msn-toggle" {% if configs.messenger and configs.messenger.is_active %}checked{% endif %}
+             onchange="document.getElementById('msn-form').style.display=this.checked?'block':'none'">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <form method="post" id="msn-form" {% if not configs.messenger or not configs.messenger.is_active %}style="display:none"{% endif %}>
+    {% csrf_token %}
+    <input type="hidden" name="platform" value="messenger">
+    <input type="hidden" name="is_active" value="on">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px;">
+      <div class="form-group">
+        <label class="form-label">Page Access Token</label>
+        <input type="password" name="access_token" class="form-control" value="{{ configs.messenger.access_token|default:'' }}" placeholder="EAAxxxx...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Webhook Verify Token</label>
+        <input type="text" name="webhook_verify_token" class="form-control" value="{{ configs.messenger.webhook_verify_token|default:'' }}" placeholder="my-verify-token">
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label class="form-label">Webhook URL</label>
+        <div class="webhook-url-display">
+          <span class="webhook-url-text">{{ request.scheme }}://{{ request.get_host }}/messaging/webhooks/messenger/</span>
+          <button type="button" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent)" class="btn btn-outline btn-sm" style="padding:4px 8px;">
+            <i class="ph-bold ph-copy"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-success"><i class="ph-bold ph-floppy-disk"></i> Save Messenger Config</button>
+  </form>
+</div>
+
+<!-- Telegram -->
+<div class="platform-config-card" style="margin-bottom: 20px;">
+  <div class="platform-config-header">
+    <div class="platform-config-icon tlg">✈️</div>
+    <div style="flex:1;">
+      <div class="platform-config-name">Telegram Bot</div>
+      <div class="platform-config-desc">Telegram Bot API — two-way messaging via a bot</div>
+    </div>
+    <label class="toggle-switch">
+      <input type="checkbox" {% if configs.telegram and configs.telegram.is_active %}checked{% endif %}
+             onchange="document.getElementById('tlg-form').style.display=this.checked?'block':'none'">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <form method="post" id="tlg-form" {% if not configs.telegram or not configs.telegram.is_active %}style="display:none"{% endif %}>
+    {% csrf_token %}
+    <input type="hidden" name="platform" value="telegram">
+    <input type="hidden" name="is_active" value="on">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px;">
+      <div class="form-group">
+        <label class="form-label">Bot Token (from @BotFather)</label>
+        <input type="password" name="bot_token" class="form-control" value="{{ configs.telegram.bot_token|default:'' }}" placeholder="1234567890:AAF...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bot Username</label>
+        <input type="text" name="bot_username" class="form-control" value="{{ configs.telegram.bot_username|default:'' }}" placeholder="@MyDaizzyBot">
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label class="form-label">Webhook URL (register with setWebhook)</label>
+        <div class="webhook-url-display">
+          <span class="webhook-url-text">{{ request.scheme }}://{{ request.get_host }}/messaging/webhooks/telegram/</span>
+          <button type="button" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent)" class="btn btn-outline btn-sm" style="padding:4px 8px;">
+            <i class="ph-bold ph-copy"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-success"><i class="ph-bold ph-floppy-disk"></i> Save Telegram Config</button>
+  </form>
+</div>
+
+<!-- Instagram -->
+<div class="platform-config-card" style="margin-bottom: 20px;">
+  <div class="platform-config-header">
+    <div class="platform-config-icon ins">📸</div>
+    <div style="flex:1;">
+      <div class="platform-config-name">Instagram DM</div>
+      <div class="platform-config-desc">Meta Graph API — Instagram Messaging API (requires Facebook Business verification)</div>
+    </div>
+    <label class="toggle-switch">
+      <input type="checkbox" {% if configs.instagram and configs.instagram.is_active %}checked{% endif %}
+             onchange="document.getElementById('ins-form').style.display=this.checked?'block':'none'">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <form method="post" id="ins-form" {% if not configs.instagram or not configs.instagram.is_active %}style="display:none"{% endif %}>
+    {% csrf_token %}
+    <input type="hidden" name="platform" value="instagram">
+    <input type="hidden" name="is_active" value="on">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px;">
+      <div class="form-group">
+        <label class="form-label">Instagram Page Access Token</label>
+        <input type="password" name="access_token" class="form-control" value="{{ configs.instagram.access_token|default:'' }}" placeholder="EAAxxxx...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Webhook Verify Token</label>
+        <input type="text" name="webhook_verify_token" class="form-control" value="{{ configs.instagram.webhook_verify_token|default:'' }}" placeholder="my-verify-token">
+      </div>
+    </div>
+    <button type="submit" class="btn btn-success"><i class="ph-bold ph-floppy-disk"></i> Save Instagram Config</button>
+  </form>
+</div>
+
+<!-- Email -->
+<div class="platform-config-card" style="margin-bottom: 20px;">
+  <div class="platform-config-header">
+    <div class="platform-config-icon eml">📧</div>
+    <div style="flex:1;">
+      <div class="platform-config-name">Email (SMTP)</div>
+      <div class="platform-config-desc">Send emails via your SMTP server (Gmail, Outlook, SendGrid, etc.)</div>
+    </div>
+    <label class="toggle-switch">
+      <input type="checkbox" {% if configs.email and configs.email.is_active %}checked{% endif %}
+             onchange="document.getElementById('eml-form').style.display=this.checked?'block':'none'">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <form method="post" id="eml-form" {% if not configs.email or not configs.email.is_active %}style="display:none"{% endif %}>
+    {% csrf_token %}
+    <input type="hidden" name="platform" value="email">
+    <input type="hidden" name="is_active" value="on">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px;">
+      <div class="form-group">
+        <label class="form-label">SMTP Host</label>
+        <input type="text" name="smtp_host" class="form-control" value="{{ configs.email.smtp_host|default:'smtp.gmail.com' }}" placeholder="smtp.gmail.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">SMTP Port</label>
+        <input type="number" name="smtp_port" class="form-control" value="{{ configs.email.smtp_port|default:587 }}" placeholder="587">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Username / Email</label>
+        <input type="email" name="smtp_username" class="form-control" value="{{ configs.email.smtp_username|default:'' }}" placeholder="you@gmail.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password / App Password</label>
+        <input type="password" name="smtp_password" class="form-control" value="{{ configs.email.smtp_password|default:'' }}" placeholder="Gmail app password">
+      </div>
+      <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+        <label class="toggle-switch">
+          <input type="checkbox" name="smtp_use_tls" {% if not configs.email or configs.email.smtp_use_tls %}checked{% endif %}>
+          <span class="toggle-slider"></span>
+        </label>
+        <span style="font-size:0.85rem; color:var(--text-muted);">Use TLS (recommended)</span>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-success"><i class="ph-bold ph-floppy-disk"></i> Save Email Config</button>
+  </form>
+</div>
+
+{% endblock %}

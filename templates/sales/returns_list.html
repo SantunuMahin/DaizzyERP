@@ -1,0 +1,53 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Merchandise Returns · {{ STORE_NAME }}{% endblock %}
+{% block page_heading %}Merchandise Returns & Inventory Inward{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Processed Returns Log</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Return ID</th>
+          <th>Date</th>
+          <th>Original Invoice</th>
+          <th>Customer</th>
+          <th>Refund Amount</th>
+          <th>Method</th>
+          <th>Reason</th>
+          <th>Processed By</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in returns %}
+        <tr>
+          <td><strong>#{{ r.id }}</strong></td>
+          <td style="font-size: 0.8rem;">{{ r.created_at|date:"d M Y, H:i" }}</td>
+          <td>
+            <strong><a href="{% url 'sales:detail' r.sale.pk %}">{{ r.sale.invoice_number }}</a></strong>
+          </td>
+          <td>{{ r.sale.customer_name|default:"Walk-in" }}</td>
+          <td style="font-weight: 700; color: var(--danger-500);">
+            {{ CURRENCY_SYMBOL }} {{ r.refund_amount|intcomma }}
+          </td>
+          <td><span class="badge badge-neutral">{{ r.get_refund_method_display }}</span></td>
+          <td style="font-size: 0.85rem;">{{ r.reason }}</td>
+          <td style="font-size: 0.8rem; color: var(--slate-500);">{{ r.processed_by.username|default:"System" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" style="text-align: center; color: var(--slate-400); padding: 36px;">
+            No merchandise returns recorded yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Sales Orders · {{ STORE_NAME }}{% endblock %}
+{% block page_heading %}Sales Transactions & Orders{% endblock %}
+
+{% block content %}
+<!-- Filter Pills & Quick Navigation -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+  <div class="tabs-nav" style="margin: 0; border: none;">
+    <a href="{% url 'sales:list' %}" class="tab-link {% if not channel_filter %}active{% endif %}">
+      All Orders
+    </a>
+    <a href="{% url 'sales:list' %}?channel=online" class="tab-link {% if channel_filter == 'online' %}active{% endif %}">
+      🌐 Online &amp; Messaging ({{ online_count }})
+    </a>
+    <a href="{% url 'sales:list' %}?channel=POS" class="tab-link {% if channel_filter == 'POS' %}active{% endif %}">
+      🏪 In-Store POS ({{ pos_count }})
+    </a>
+  </div>
+
+  <div style="display: flex; gap: 8px;">
+    <a href="{% url 'sales:courier_settings' %}" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-truck"></i> Steadfast Settings
+    </a>
+    <a href="{% url 'pos:terminal' %}" class="btn btn-primary btn-sm">
+      <i class="ph-bold ph-lightning"></i> Open POS
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+    <form method="get" action="" style="display: flex; gap: 10px; align-items: center; flex: 1; min-width: 280px; flex-wrap: wrap;">
+      {% if channel_filter %}<input type="hidden" name="channel" value="{{ channel_filter }}">{% endif %}
+      <input type="text" name="q" value="{{ request.GET.q|default:'' }}" class="form-input" placeholder="Search by invoice #, customer name, phone..." style="max-width: 280px;">
+      <select name="status" class="form-select" style="max-width: 150px;">
+        <option value="">All Statuses</option>
+        <option value="COMPLETED" {% if request.GET.status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+        <option value="CANCELLED" {% if request.GET.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+        <option value="PARTIALLY_RETURNED" {% if request.GET.status == 'PARTIALLY_RETURNED' %}selected{% endif %}>Partially Returned</option>
+        <option value="RETURNED" {% if request.GET.status == 'RETURNED' %}selected{% endif %}>Returned</option>
+      </select>
+      <select name="courier_status" class="form-select" style="max-width: 170px;">
+        <option value="">All Courier Status</option>
+        <option value="in_transit" {% if request.GET.courier_status == 'in_transit' %}selected{% endif %}>In Transit</option>
+        <option value="in_review" {% if request.GET.courier_status == 'in_review' %}selected{% endif %}>In Review</option>
+        <option value="delivered" {% if request.GET.courier_status == 'delivered' %}selected{% endif %}>Delivered</option>
+        <option value="none" {% if request.GET.courier_status == 'none' %}selected{% endif %}>Not Dispatched</option>
+      </select>
+      <button type="submit" class="btn btn-outline btn-sm">Filter</button>
+      {% if request.GET.q or request.GET.status or request.GET.courier_status %}
+      <a href="{% url 'sales:list' %}{% if channel_filter %}?channel={{ channel_filter }}{% endif %}" class="btn btn-outline btn-sm" style="color: var(--danger-500);">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Date & Time</th>
+          <th>Channel</th>
+          <th>Customer</th>
+          <th>Grand Total</th>
+          <th>Payment</th>
+          <th>Courier / Tracking</th>
+          <th>Status</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sale in sales %}
+        <tr>
+          <td>
+            <strong><a href="{% url 'sales:detail' sale.pk %}">{{ sale.invoice_number }}</a></strong>
+          </td>
+          <td style="font-size: 0.8rem;">{{ sale.created_at|date:"d M Y, H:i" }}</td>
+          <td>
+            <span class="badge {% if sale.order_channel == 'POS' %}badge-neutral{% else %}badge-purple{% endif %}" style="font-size: 0.72rem;">
+              {{ sale.get_order_channel_display }}
+            </span>
+          </td>
+          <td>
+            {% if sale.customer_name %}{{ sale.customer_name }}
+              {% if sale.contact %}
+                <a href="{% url 'messaging:contact_detail' sale.contact.pk %}" title="View Contact in CRM" style="margin-left:3px; color:var(--brand-primary); font-size:0.75rem;"><i class="ph-bold ph-chats-circle"></i></a>
+              {% endif %}
+              <div style="font-size: 0.72rem; color: var(--slate-400);">{{ sale.customer_phone }}</div>
+            {% else %}<span style="color: var(--slate-400);">Walk-in</span>{% endif %}
+          </td>
+          <td style="font-weight: 700; font-family: var(--font-mono);">{{ CURRENCY_SYMBOL }} {{ sale.grand_total|intcomma }}</td>
+          <td>
+            <span class="badge badge-neutral" style="font-size: 0.7rem;">{{ sale.payment.get_payment_method_display|default:"Cash" }}</span>
+          </td>
+          <td>
+            {% if sale.courier_tracking_code %}
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <span class="badge {% if sale.courier_status == 'delivered' %}badge-success{% elif sale.courier_status == 'in_transit' %}badge-purple{% else %}badge-warning{% endif %}" style="font-size:0.68rem; padding:2px 6px;">
+                  Steadfast: {{ sale.get_courier_status_display }}
+                </span>
+                <a href="{{ sale.tracking_url }}" target="_blank" style="font-size:0.72rem; color:var(--brand-primary); font-family:var(--font-mono);">
+                  {{ sale.courier_tracking_code }}
+                </a>
+              </div>
+            {% elif sale.is_online %}
+              <span class="badge badge-warning" style="font-size:0.68rem;">Pending Booking</span>
+            {% else %}
+              <span style="font-size:0.72rem; color:var(--text-muted);">In-Store</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge {% if sale.status == 'COMPLETED' %}badge-success{% elif sale.status == 'CANCELLED' %}badge-danger{% else %}badge-warning{% endif %}">
+              {{ sale.get_status_display }}
+            </span>
+          </td>
+          <td style="text-align: right;">
+            <a href="{% url 'sales:detail' sale.pk %}" class="btn btn-outline btn-sm" title="View Order">
+              <i class="ph-bold ph-eye"></i>
+            </a>
+            {% if sale.invoice %}
+            <a href="{% url 'invoices:print' sale.invoice.pk %}" target="_blank" class="btn btn-outline btn-sm" title="Print Invoice">
+              <i class="ph-bold ph-printer"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" style="text-align: center; color: var(--slate-400); padding: 36px;">
+            No sales matching the specified filter criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Receipt #{{ sale.invoice_number }}</title>
+  <style>
+    @page {
+      size: 80mm auto;
+      margin: 0;
+    }
+    body {
+      font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
+      font-size: 11px;
+      line-height: 1.35;
+      color: #000000;
+      background: #ffffff;
+      width: 80mm;
+      margin: 0 auto;
+      padding: 6mm 4mm;
+      box-sizing: border-box;
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .bold { font-weight: bold; }
+    .divider {
+      border-top: 1px dashed #000000;
+      margin: 6px 0;
+    }
+    .store-header {
+      margin-bottom: 8px;
+    }
+    .store-name {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .info-table, .items-table, .totals-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .items-table th {
+      border-bottom: 1px dashed #000;
+      padding-bottom: 4px;
+      font-size: 10px;
+    }
+    .items-table td {
+      padding: 3px 0;
+    }
+    .totals-table td {
+      padding: 2px 0;
+    }
+    .grand-total {
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .print-actions {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .btn-print {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      font-family: sans-serif;
+      font-size: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body { padding: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-actions no-print">
+    <button onclick="window.print()" class="btn-print">🖨️ Print Receipt</button>
+  </div>
+
+  <div class="store-header text-center">
+    <div class="store-name">{{ settings.store_name|upper }}</div>
+    <div>{{ settings.store_address }}</div>
+    <div>Phone: {{ settings.phone }}</div>
+    {% if settings.website %}<div>{{ settings.website }}</div>{% endif %}
+  </div>
+
+  <div class="divider"></div>
+
+  <table class="info-table">
+    <tr>
+      <td>Invoice:</td>
+      <td class="text-right bold">{{ sale.invoice_number }}</td>
+    </tr>
+    <tr>
+      <td>Date:</td>
+      <td class="text-right">{{ sale.created_at|date:"d M Y, h:i A" }}</td>
+    </tr>
+    <tr>
+      <td>Cashier:</td>
+      <td class="text-right">{{ sale.cashier.username|default:"Staff" }}</td>
+    </tr>
+    {% if sale.customer_name %}
+    <tr>
+      <td>Customer:</td>
+      <td class="text-right">{{ sale.customer_name }}</td>
+    </tr>
+    {% endif %}
+    {% if sale.customer_phone %}
+    <tr>
+      <td>Phone:</td>
+      <td class="text-right">{{ sale.customer_phone }}</td>
+    </tr>
+    {% endif %}
+  </table>
+
+  <div class="divider"></div>
+
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th align="left">Item</th>
+        <th align="center">Qty</th>
+        <th align="right">Price</th>
+        <th align="right">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td colspan="4" class="bold">{{ item.product_name }}</td>
+      </tr>
+      <tr>
+        <td style="color: #444; font-size: 9px;">SKU: {{ item.product_sku }}</td>
+        <td align="center">{{ item.quantity }}</td>
+        <td align="right">{{ item.unit_price }}</td>
+        <td align="right" class="bold">{{ item.line_total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="divider"></div>
+
+  <table class="totals-table">
+    <tr>
+      <td>Subtotal:</td>
+      <td class="text-right">{{ settings.currency_symbol }} {{ sale.subtotal }}</td>
+    </tr>
+    {% if sale.discount_amount > 0 %}
+    <tr>
+      <td>Discount:</td>
+      <td class="text-right">-{{ settings.currency_symbol }} {{ sale.discount_amount }}</td>
+    </tr>
+    {% endif %}
+    {% if sale.tax_amount > 0 %}
+    <tr>
+      <td>Tax:</td>
+      <td class="text-right">+{{ settings.currency_symbol }} {{ sale.tax_amount }}</td>
+    </tr>
+    {% endif %}
+    <tr class="grand-total">
+      <td class="bold">GRAND TOTAL:</td>
+      <td class="text-right bold">{{ settings.currency_symbol }} {{ sale.grand_total }}</td>
+    </tr>
+    <tr class="divider"><td colspan="2"></td></tr>
+    <tr>
+      <td>Paid ({{ payment.get_payment_method_display|default:"Cash" }}):</td>
+      <td class="text-right">{{ settings.currency_symbol }} {{ sale.amount_paid }}</td>
+    </tr>
+    <tr>
+      <td>Change Due:</td>
+      <td class="text-right">{{ settings.currency_symbol }} {{ sale.change_amount }}</td>
+    </tr>
+  </table>
+
+  <div class="divider"></div>
+
+  <div class="text-center" style="margin-top: 8px;">
+    <div class="bold">THANK YOU FOR YOUR BUSINESS!</div>
+    <div style="font-size: 10px; margin-top: 4px;">Items purchased can be returned within 7 days with this invoice.</div>
+    <div style="margin-top: 8px; font-size: 9px; color: #555;">Daizzy IMS · www.daizzy.online</div>
+  </div>
+</body>
+</html>

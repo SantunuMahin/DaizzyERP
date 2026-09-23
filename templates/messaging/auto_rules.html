@@ -1,0 +1,90 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Automated Messaging Rules · {{ STORE_NAME|default:"Daizzy" }}{% endblock %}
+{% block page_heading %}Automated Messaging Engine{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+  <div>
+    <h1 style="font-size:1.45rem; font-weight:800; color:var(--text-main); font-family:var(--font-sans);">
+      <span class="gradient-text">Event-Driven</span> Auto-Messaging
+    </h1>
+    <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">
+      Automatic customer notifications for Order Confirmation, Steadfast Courier tracking, Delivery, and AI Inbound Bot.
+    </p>
+  </div>
+  <div style="display:flex; gap:8px;">
+    <a href="{% url 'messaging:inbox' %}" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-chats-circle"></i> Open Inbox
+    </a>
+    <a href="{% url 'sales:courier_settings' %}" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-truck"></i> Steadfast Settings
+    </a>
+  </div>
+</div>
+
+<!-- Placeholders Cheatsheet -->
+<div class="card" style="margin-bottom:24px; padding:16px 20px; background:rgba(124,58,237,0.06); border-left:4px solid var(--brand-primary);">
+  <div style="font-size:0.82rem; font-weight:700; color:var(--text-main); margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+    <i class="ph-bold ph-info" style="color:var(--brand-primary);"></i> Available Dynamic Placeholders
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <code class="badge badge-purple" style="font-family:var(--font-mono); font-size:0.75rem;">{customer_name}</code>
+    <code class="badge badge-purple" style="font-family:var(--font-mono); font-size:0.75rem;">{invoice_number}</code>
+    <code class="badge badge-purple" style="font-family:var(--font-mono); font-size:0.75rem;">{grand_total}</code>
+    <code class="badge badge-purple" style="font-family:var(--font-mono); font-size:0.75rem;">{cod_amount}</code>
+    <code class="badge badge-purple" style="font-family:var(--font-mono); font-size:0.75rem;">{items_summary}</code>
+    <code class="badge badge-purple" style="font-family:var(--font-mono); font-size:0.75rem;">{courier_service}</code>
+    <code class="badge badge-purple" style="font-family:var(--font-mono); font-size:0.75rem;">{consignment_id}</code>
+    <code class="badge badge-purple" style="font-family:var(--font-mono); font-size:0.75rem;">{tracking_code}</code>
+    <code class="badge badge-purple" style="font-family:var(--font-mono); font-size:0.75rem;">{tracking_url}</code>
+    <code class="badge badge-purple" style="font-family:var(--font-mono); font-size:0.75rem;">{delivery_address}</code>
+    <code class="badge badge-purple" style="font-family:var(--font-mono); font-size:0.75rem;">{payment_status}</code>
+  </div>
+</div>
+
+<!-- Rule Cards List -->
+<div style="display:flex; flex-direction:column; gap:20px;">
+  {% for rule in rules %}
+  <div class="card" style="border: 1px solid var(--border-subtle); overflow:hidden;">
+    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:16px 22px;">
+      <div>
+        <h3 class="card-title" style="display:flex; align-items:center; gap:8px; font-size:1.05rem;">
+          {% if rule.code == 'ORDER_CONFIRMED' %}🎉{% elif rule.code == 'COURIER_DISPATCHED' %}🚚{% elif rule.code == 'ORDER_DELIVERED' %}✅{% elif rule.code == 'ORDER_CANCELLED' %}❌{% else %}🤖{% endif %}
+          {{ rule.label }}
+        </h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">{{ rule.description }}</p>
+      </div>
+      <div>
+        <span class="badge {% if rule.is_active %}badge-success{% else %}badge-neutral{% endif %}">
+          {% if rule.is_active %}Active &amp; Dispatched{% else %}Disabled{% endif %}
+        </span>
+      </div>
+    </div>
+
+    <form method="post" style="padding:20px 22px;">
+      {% csrf_token %}
+      <input type="hidden" name="rule_code" value="{{ rule.code }}">
+
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:0.83rem; font-weight:700; margin-bottom:6px; color:var(--text-main);">
+          Message Template Text
+        </label>
+        <textarea name="body" class="form-control" rows="6" style="width:100%; font-family:var(--font-sans); font-size:0.88rem; line-height:1.6; padding:12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);">{{ rule.body }}</textarea>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top:12px; border-top:1px solid var(--border-subtle);">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.85rem; font-weight:600; color:var(--text-main);">
+          <input type="checkbox" name="is_active" {% if rule.is_active %}checked{% endif %} style="width:18px; height:18px; accent-color:var(--brand-primary);">
+          Enable automatic notification for this trigger
+        </label>
+        <button type="submit" class="btn btn-primary btn-sm" style="box-shadow:0 3px 10px rgba(124,58,237,0.35);">
+          <i class="ph-bold ph-floppy-disk"></i> Save Template
+        </button>
+      </div>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,629 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Messages Hub · {{ STORE_NAME|default:"Daizzy" }}{% endblock %}
+{% block page_heading %}Messages Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+.app-content { padding: 16px 20px 20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+  <div>
+    <h1 style="font-size:1.4rem; font-weight:800; color:var(--text-main); font-family:var(--font-sans);">
+      <span class="gradient-text">Omni-Channel</span> Inbox
+    </h1>
+    <p style="font-size:0.83rem; color:var(--text-muted); margin-top:2px;">
+      WhatsApp · Messenger · Instagram · Telegram · Email — all in one place
+    </p>
+  </div>
+  <div style="display:flex; gap:8px;">
+    <a href="{% url 'messaging:contacts' %}" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-address-book"></i> Contacts
+    </a>
+    <a href="{% url 'messaging:auto_rules' %}" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-robot"></i> Auto-Messaging
+    </a>
+    <a href="{% url 'messaging:platform_config' %}" class="btn btn-outline btn-sm">
+      <i class="ph-bold ph-gear-six"></i> Platforms
+    </a>
+    <button onclick="document.getElementById('new-conv-modal').style.display='flex'" class="btn btn-primary btn-sm">
+      <i class="ph-bold ph-plus"></i> New Message
+    </button>
+  </div>
+</div>
+
+<!-- ── INBOX LAYOUT ──────────────────────────────────────────────────────── -->
+<div class="inbox-layout">
+
+  <!-- LEFT: Conversation List -->
+  <div class="inbox-sidebar">
+
+    <!-- Platform filter tabs -->
+    <div class="inbox-sidebar-header">
+      <h2>Conversations</h2>
+      <div class="platform-tabs">
+        <a href="?filter={{ filter_type }}" class="platform-tab {% if not platform_filter %}active-tab{% endif %}">
+          All <span style="font-size:0.7rem; color:var(--text-muted);">({{ conversations|length }})</span>
+        </a>
+        <a href="?platform=whatsapp&filter={{ filter_type }}" class="platform-tab wab {% if platform_filter == 'whatsapp' %}active-tab{% endif %}" title="WhatsApp">
+          💬 WA
+        </a>
+        <a href="?platform=messenger&filter={{ filter_type }}" class="platform-tab msn {% if platform_filter == 'messenger' %}active-tab{% endif %}" title="Messenger">
+          💙 MSN
+        </a>
+        <a href="?platform=telegram&filter={{ filter_type }}" class="platform-tab tlg {% if platform_filter == 'telegram' %}active-tab{% endif %}" title="Telegram">
+          ✈️ TLG
+        </a>
+        <a href="?platform=instagram&filter={{ filter_type }}" class="platform-tab ins {% if platform_filter == 'instagram' %}active-tab{% endif %}" title="Instagram">
+          📸 IG
+        </a>
+        <a href="?platform=email&filter={{ filter_type }}" class="platform-tab {% if platform_filter == 'email' %}active-tab{% endif %}" title="Email">
+          📧 Email
+        </a>
+      </div>
+    </div>
+
+    <!-- Filter tabs: All / Unread / Mentions -->
+    <div class="filter-tabs">
+      <a href="?platform={{ platform_filter }}&filter=all" class="filter-tab {% if filter_type == 'all' %}active{% endif %}">All</a>
+      <a href="?platform={{ platform_filter }}&filter=unread" class="filter-tab {% if filter_type == 'unread' %}active{% endif %}">
+        Unread
+        {% if total_unread %}<span class="filter-tab-count">{{ total_unread }}</span>{% endif %}
+      </a>
+    </div>
+
+    <!-- Search -->
+    <div class="conv-search">
+      <div class="search-bar">
+        <i class="ph-bold ph-magnifying-glass search-bar-icon"></i>
+        <input type="text" id="conv-search-input" placeholder="Search conversations…" value="{{ search_query }}"
+               onkeyup="filterConversations(this.value)">
+      </div>
+    </div>
+
+    <!-- Conversation list -->
+    <div class="conv-list" id="conv-list">
+      {% for conv in conversations %}
+      <a href="?{% if platform_filter %}platform={{ platform_filter }}&{% endif %}filter={{ filter_type }}&conv={{ conv.pk }}"
+         class="conv-item {% if active_conv and active_conv.pk == conv.pk %}active{% endif %} {% if conv.unread_count > 0 %}unread{% endif %}"
+         data-name="{{ conv.contact.name|lower }}"
+         data-conv="{{ conv.pk }}">
+        <!-- Avatar -->
+        <div class="conv-avatar" style="background: {{ conv.contact.avatar_color }};">
+          {{ conv.contact.initials }}
+          <span class="conv-platform-dot {{ conv.platform|slice:':3' }}">
+            {% if conv.platform == 'whatsapp' %}💬{% elif conv.platform == 'messenger' %}💙{% elif conv.platform == 'telegram' %}✈️{% elif conv.platform == 'instagram' %}📸{% elif conv.platform == 'email' %}📧{% endif %}
+          </span>
+        </div>
+        <!-- Body -->
+        <div class="conv-body">
+          <div class="conv-name">{{ conv.contact.name }}</div>
+          <div class="conv-preview">
+            {% with lm=conv.last_message %}
+              {% if lm %}
+                {% if lm.is_outbound %}You: {% endif %}{{ lm.body|truncatechars:38 }}
+              {% else %}
+                No messages yet
+              {% endif %}
+            {% endwith %}
+          </div>
+        </div>
+        <!-- Meta -->
+        <div class="conv-meta">
+          {% with lm=conv.last_message %}
+            {% if lm %}<span class="conv-time">{{ lm.created_at|date:"H:i" }}</span>{% endif %}
+          {% endwith %}
+          {% if conv.unread_count > 0 %}
+            <span class="conv-unread-count">{{ conv.unread_count }}</span>
+          {% endif %}
+        </div>
+      </a>
+      {% empty %}
+      <div class="empty-state" style="padding: 40px 20px;">
+        <div class="empty-state-icon"><i class="ph-bold ph-chats-circle"></i></div>
+        <h3>No conversations yet</h3>
+        <p>Messages will appear here once contacts reach out or you start a new conversation.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div><!-- /inbox-sidebar -->
+
+  <!-- RIGHT: Chat Panel -->
+  <div class="chat-panel">
+    {% if active_conv %}
+
+    <!-- Chat header -->
+    <div class="chat-header">
+      <div class="chat-header-avatar" style="background: {{ active_conv.contact.avatar_color }};">
+        {{ active_conv.contact.initials }}
+      </div>
+      <div class="chat-header-info">
+        <div class="chat-header-name">
+          <a href="{% url 'messaging:contact_detail' active_conv.contact.pk %}" style="color: var(--text-main);">
+            {{ active_conv.contact.name }}
+          </a>
+        </div>
+        <div class="chat-header-status">
+          <span class="badge badge-{{ active_conv.platform|slice:':3' }}">
+            {% if active_conv.platform == 'whatsapp' %}💬 WhatsApp
+            {% elif active_conv.platform == 'messenger' %}💙 Messenger
+            {% elif active_conv.platform == 'telegram' %}✈️ Telegram
+            {% elif active_conv.platform == 'instagram' %}📸 Instagram
+            {% elif active_conv.platform == 'email' %}📧 Email
+            {% else %}{{ active_conv.get_platform_display }}{% endif %}
+          </span>
+          &nbsp;
+          <span class="badge {% if active_conv.status == 'open' %}badge-success{% else %}badge-neutral{% endif %}">
+            {{ active_conv.get_status_display }}
+          </span>
+        </div>
+      </div>
+      <div class="chat-actions">
+        <button onclick="document.getElementById('inbox-quick-order-modal').style.display='flex'" class="btn btn-primary btn-sm" style="padding:4px 10px; font-size:0.75rem; gap:5px; box-shadow:0 3px 10px rgba(124,58,237,0.35);">
+          <i class="ph-bold ph-shopping-bag"></i> Create Order
+        </button>
+        <button class="chat-action-btn" id="btn-toggle-crm" onclick="toggleCrmDrawer()" title="View Customer Orders & Deliveries">
+          <i class="ph-bold ph-receipt"></i>
+        </button>
+        <a href="{% url 'messaging:contact_detail' active_conv.contact.pk %}" class="chat-action-btn" title="Contact Profile">
+          <i class="ph-bold ph-user"></i>
+        </a>
+        <button class="chat-action-btn" title="Search in conversation">
+          <i class="ph-bold ph-magnifying-glass"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages area -->
+    <div class="chat-messages" id="chat-messages-area">
+      {% regroup chat_messages by created_at|date:"d M Y" as messages_by_day %}
+      {% for day_group in messages_by_day %}
+        <div class="msg-date-divider"><span>{{ day_group.grouper }}</span></div>
+        {% for msg in day_group.list %}
+        <div class="msg-group {% if msg.is_outbound %}outbound{% else %}inbound{% endif %}" data-msg-id="{{ msg.pk }}">
+          {% if not msg.is_outbound %}
+          <span class="msg-sender-label">{{ active_conv.contact.name }}</span>
+          {% else %}
+          <span class="msg-sender-label" style="text-align:right;">{{ msg.sent_by.get_full_name|default:msg.sent_by.username|default:"You" }}</span>
+          {% endif %}
+          <div class="msg-bubble">{{ msg.body }}</div>
+          <div class="msg-time">
+            {{ msg.created_at|date:"H:i" }}
+            {% if msg.is_outbound %}
+              {% if msg.is_delivered %}
+                <i class="ph-bold ph-check-circle msg-read-tick"></i>
+              {% else %}
+                <i class="ph-bold ph-clock" style="color:var(--text-muted);"></i>
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      {% empty %}
+        <div class="empty-state" style="flex:1; justify-content:center;">
+          <div class="empty-state-icon"><i class="ph-bold ph-chat-dots"></i></div>
+          <h3>No messages yet</h3>
+          <p>Send the first message to {{ active_conv.contact.name }}.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Chat input -->
+    <div class="chat-input-area">
+      <!-- Quick template selector -->
+      {% if templates %}
+      <div style="margin-bottom:10px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+        <span style="font-size:0.72rem; color:var(--text-muted);">Quick reply:</span>
+        {% for tpl in templates|slice:":4" %}
+        <button onclick="document.getElementById('chat-input-text').value='{{ tpl.body|escapejs }}'"
+                class="btn btn-outline" style="font-size:0.7rem; padding:3px 9px; border-radius:var(--radius-full);">
+          {{ tpl.name }}
+        </button>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <form id="send-form" onsubmit="sendMessage(event)">
+        {% csrf_token %}
+        <div class="chat-input-bar">
+          <div class="chat-input-actions">
+            <button type="button" class="chat-action-btn" title="Attach file">
+              <i class="ph-bold ph-paperclip"></i>
+            </button>
+            <button type="button" class="chat-action-btn" title="Emoji">
+              <i class="ph-bold ph-smiley"></i>
+            </button>
+          </div>
+          <textarea id="chat-input-text" placeholder="Type a message…" rows="1"
+                    onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); sendMessage(event);}"></textarea>
+          <button type="submit" class="chat-send-btn" title="Send message">
+            <i class="ph-bold ph-paper-plane-tilt"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    {% else %}
+    <!-- No active conversation -->
+    <div class="empty-state" style="flex:1; justify-content:center; align-items:center; height:100%;">
+      <div class="empty-state-icon"><i class="ph-bold ph-chats-circle"></i></div>
+      <h3>Select a conversation</h3>
+      <p>Choose a conversation from the left to view messages, or start a new one.</p>
+      <button onclick="document.getElementById('new-conv-modal').style.display='flex'" class="btn btn-primary" style="margin-top:12px;">
+        <i class="ph-bold ph-plus"></i> New Message
+      </button>
+    </div>
+    {% endif %}
+
+  </div><!-- /chat-panel -->
+
+  <!-- ── RIGHT: Customer CRM & Orders Drawer ────────────────────────── -->
+  {% if active_conv and active_conv.contact %}
+  <div class="inbox-crm-drawer" id="inbox-crm-drawer" style="width:310px; border-left:1px solid var(--border-subtle); background:rgba(0,0,0,0.18); display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0;">
+    <div style="padding:16px 18px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="font-size:0.92rem; font-weight:700; color:var(--text-main); margin:0; display:flex; align-items:center; gap:6px;">
+        <i class="ph-bold ph-receipt" style="color:var(--brand-primary);"></i> Orders &amp; Delivery
+      </h3>
+      <a href="{% url 'messaging:contact_detail' active_conv.contact.pk %}" style="font-size:0.75rem; color:var(--brand-primary); font-weight:600;">Profile →</a>
+    </div>
+
+    <!-- Contact Summary -->
+    <div style="padding:16px 18px; border-bottom:1px solid var(--border-subtle);">
+      <div style="font-weight:700; font-size:0.95rem; color:var(--text-main); margin-bottom:4px;">{{ active_conv.contact.name }}</div>
+      <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">
+        {% if active_conv.contact.phone %}<div><i class="ph-bold ph-phone"></i> {{ active_conv.contact.phone }}</div>{% endif %}
+        {% if active_conv.contact.email %}<div><i class="ph-bold ph-envelope"></i> {{ active_conv.contact.email }}</div>{% endif %}
+      </div>
+
+      <!-- Quick Metrics -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+        <div style="background:var(--glass-bg-strong); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:8px 10px;">
+          <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Orders</div>
+          <div style="font-size:1.1rem; font-weight:800; color:var(--text-main); font-family:var(--font-mono);">{{ contact_order_count }}</div>
+        </div>
+        <div style="background:var(--glass-bg-strong); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:8px 10px;">
+          <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Spent</div>
+          <div style="font-size:1.05rem; font-weight:800; color:#10B981; font-family:var(--font-mono);">৳{{ contact_total_spent|floatformat:0 }}</div>
+        </div>
+      </div>
+
+      <button onclick="document.getElementById('inbox-quick-order-modal').style.display='flex'" class="btn btn-primary btn-sm" style="width:100%; box-shadow:0 3px 12px rgba(124,58,237,0.35);">
+        <i class="ph-bold ph-plus"></i> Create Order from Chat
+      </button>
+    </div>
+
+    <!-- Recent Orders List -->
+    <div style="padding:14px 18px; flex:1;">
+      <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700; margin-bottom:10px;">
+        Recent Orders ({{ contact_orders|length }})
+      </div>
+
+      {% if contact_orders %}
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        {% for ord in contact_orders %}
+        <div style="background:var(--glass-bg-strong); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:10px 12px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+            <a href="{% url 'sales:detail' ord.pk %}" style="font-family:var(--font-mono); font-weight:700; font-size:0.82rem; color:var(--brand-primary);">
+              {{ ord.invoice_number }}
+            </a>
+            <span style="font-weight:800; font-family:var(--font-mono); font-size:0.85rem; color:var(--text-main);">
+              ৳{{ ord.grand_total }}
+            </span>
+          </div>
+          <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:6px;">
+            {{ ord.created_at|date:"d M, H:i" }} · {{ ord.items.count }} item{{ ord.items.count|pluralize }}
+          </div>
+
+          <!-- Courier Status -->
+          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:6px;">
+            {% if ord.courier_tracking_code %}
+              <div style="display:flex; align-items:center; gap:4px;">
+                <span class="badge {% if ord.courier_status == 'delivered' %}badge-success{% else %}badge-warning{% endif %}" style="font-size:0.68rem; padding:2px 6px;">
+                  Steadfast: {{ ord.courier_status }}
+                </span>
+                <a href="{{ ord.tracking_url }}" target="_blank" title="Track on Steadfast" style="color:var(--brand-primary); font-size:0.75rem;">
+                  <i class="ph-bold ph-arrow-square-out"></i>
+                </a>
+              </div>
+            {% else %}
+              <span class="badge badge-neutral" style="font-size:0.68rem; padding:2px 6px;">No Courier</span>
+              <form method="post" action="{% url 'sales:courier_dispatch' ord.pk %}" style="margin:0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline btn-sm" style="font-size:0.68rem; padding:2px 6px;">Dispatch</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align:center; padding:24px 10px; color:var(--text-muted); font-size:0.8rem;">
+        No previous orders found for this customer.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- /inbox-layout -->
+
+
+<!-- ── INBOX QUICK ORDER MODAL ─────────────────────────────────────────────── -->
+{% if active_conv and active_conv.contact %}
+<div id="inbox-quick-order-modal" class="modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+  <div class="card" style="width:100%; max-width:540px; max-height:90vh; overflow-y:auto; border:1px solid var(--glass-border); box-shadow:var(--shadow-xl);">
+    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 class="card-title" style="display:flex; align-items:center; gap:8px;">
+        <i class="ph-bold ph-shopping-bag" style="color:var(--brand-primary);"></i>
+        Quick Order for {{ active_conv.contact.name }}
+      </h3>
+      <button onclick="document.getElementById('inbox-quick-order-modal').style.display='none'" class="btn btn-outline btn-sm" style="padding:3px 7px;">✕</button>
+    </div>
+    <form method="post" action="{% url 'messaging:quick_order_create' %}" style="padding:20px;">
+      {% csrf_token %}
+      <input type="hidden" name="contact_id" value="{{ active_conv.contact.pk }}">
+
+      <!-- Product Picker -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:5px; color:var(--text-main);">Product *</label>
+        <select name="product_id" id="inbox-product-select" class="form-control" required style="width:100%; padding:9px 12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);" onchange="updateInboxPrice(this)">
+          <option value="">-- Select Product --</option>
+          {% for p in products %}
+          <option value="{{ p.pk }}" data-price="{{ p.current_price }}">{{ p.name }} (Stock: {{ p.inventory.quantity|default:0 }}) — ৳{{ p.current_price }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+        <div>
+          <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:5px; color:var(--text-main);">Quantity *</label>
+          <input type="number" name="quantity" id="inbox-product-qty" value="1" min="1" class="form-control" required style="width:100%; padding:9px 12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);" oninput="recalcInboxTotal()">
+        </div>
+        <div>
+          <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:5px; color:var(--text-main);">Unit Price (৳)</label>
+          <input type="number" step="0.01" name="unit_price" id="inbox-product-price" value="0.00" class="form-control" required style="width:100%; padding:9px 12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);" oninput="recalcInboxTotal()">
+        </div>
+      </div>
+
+      <!-- Channel & Payment -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+        <div>
+          <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:5px; color:var(--text-main);">Channel</label>
+          <select name="order_channel" class="form-control" style="width:100%; padding:9px 12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);">
+            <option value="{{ active_conv.platform|upper }}" selected>{{ active_conv.get_platform_display }}</option>
+            <option value="ONLINE">Online Store</option>
+            <option value="WHATSAPP">WhatsApp</option>
+            <option value="MESSENGER">Facebook Messenger</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:5px; color:var(--text-main);">Payment</label>
+          <select name="payment_method" class="form-control" style="width:100%; padding:9px 12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);">
+            <option value="CASH">Cash on Delivery (COD)</option>
+            <option value="BKASH">bKash</option>
+            <option value="NAGAD">Nagad</option>
+            <option value="CARD">Card</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Delivery Address -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:5px; color:var(--text-main);">Delivery Street Address *</label>
+        <textarea name="delivery_address" rows="2" class="form-control" required placeholder="Street address, district" style="width:100%; padding:9px 12px; border-radius:var(--radius-md); background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle);">{{ active_conv.contact.notes|truncatechars:100|default:"" }}</textarea>
+      </div>
+
+      <!-- Steadfast Courier Checkbox -->
+      <div style="margin-bottom:18px; padding:12px 14px; border-radius:var(--radius-md); background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); display:flex; align-items:center; gap:10px;">
+        <input type="checkbox" name="auto_dispatch_courier" id="inbox_auto_dispatch" checked style="width:18px; height:18px; accent-color:var(--brand-primary); cursor:pointer;">
+        <label for="inbox_auto_dispatch" style="font-size:0.84rem; cursor:pointer; color:var(--text-main); line-height:1.4;">
+          <strong>Book on Steadfast Courier automatically</strong><br>
+          <span style="font-size:0.75rem; color:var(--text-muted);">Generates Steadfast consignment &amp; tracking link, and auto-sends confirmation message to customer.</span>
+        </label>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; padding-top:10px; border-top:1px solid var(--border-subtle);">
+        <span style="font-weight:700; color:var(--text-muted); font-size:0.95rem;">Order Grand Total:</span>
+        <span id="inbox-total-display" style="font-size:1.35rem; font-weight:800; color:var(--brand-primary); font-family:var(--font-mono);">৳ 0.00</span>
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <button type="button" onclick="document.getElementById('inbox-quick-order-modal').style.display='none'" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="box-shadow:0 4px 14px rgba(124,58,237,0.4);">
+          <i class="ph-bold ph-check-circle"></i> Confirm &amp; Place Order
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── NEW CONVERSATION MODAL ──────────────────────────────────────────────── -->
+<div id="new-conv-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); z-index:9000; align-items:center; justify-content:center;">
+  <div style="background:var(--bg-surface-elevated, #141733); border:1px solid var(--glass-border); border-radius:var(--radius-xl); padding:32px; width:min(520px,95vw); box-shadow:var(--shadow-xl);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+      <h2 style="font-size:1.2rem; font-weight:700; color:var(--text-main); font-family:var(--font-sans);">New Message</h2>
+      <button onclick="document.getElementById('new-conv-modal').style.display='none'" style="background:none; border:none; color:var(--text-muted); font-size:1.4rem; cursor:pointer;">
+        <i class="ph-bold ph-x"></i>
+      </button>
+    </div>
+    <form method="post" action="{% url 'messaging:new_conversation' %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Contact</label>
+        <select name="contact_id" class="form-control" required>
+          <option value="">— Select contact —</option>
+          {% for conv in conversations %}
+          <option value="{{ conv.contact.pk }}">{{ conv.contact.name }} ({{ conv.contact.phone }})</option>
+          {% endfor %}
+        </select>
+        <div style="margin-top:6px; font-size:0.78rem; color:var(--text-muted);">
+          Or <a href="{% url 'messaging:contact_create' %}" style="color:var(--brand-secondary);">create a new contact</a> first.
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Platform</label>
+        <select name="platform" class="form-control" required>
+          {% for val, label in platforms %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Initial Message</label>
+        <textarea name="message" class="form-control" rows="3" placeholder="Type your first message…"></textarea>
+      </div>
+      <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <button type="button" onclick="document.getElementById('new-conv-modal').style.display='none'" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="ph-bold ph-paper-plane-tilt"></i> Send &amp; Open
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CONV_ID = {{ active_conv.pk|default:"null" }};
+const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+let lastMsgId = {% if chat_messages %}{{ chat_messages.last.pk|default:0 }}{% else %}0{% endif %};
+
+// ── Send message ──────────────────────────────────────────────────────────
+async function sendMessage(event) {
+  event.preventDefault();
+  const textarea = document.getElementById('chat-input-text');
+  const body = textarea.value.trim();
+  if (!body || !CONV_ID) return;
+
+  textarea.value = '';
+  textarea.style.height = 'auto';
+
+  try {
+    const res = await fetch('{% url "messaging:send_message" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ conversation_id: CONV_ID, body }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      appendMessage(data.message, true);
+      lastMsgId = data.message.id;
+    }
+  } catch(e) {
+    console.error('Send failed:', e);
+  }
+}
+
+// ── Append a message bubble ───────────────────────────────────────────────
+function appendMessage(msg, scroll) {
+  const area = document.getElementById('chat-messages-area');
+  if (!area) return;
+
+  const isOut = msg.direction === 'outbound';
+  const div = document.createElement('div');
+  div.className = `msg-group ${isOut ? 'outbound' : 'inbound'}`;
+  div.dataset.msgId = msg.id;
+  div.innerHTML = `
+    <div class="msg-bubble">${escapeHtml(msg.body)}</div>
+    <div class="msg-time">${msg.created_at}${isOut ? ' <i class="ph-bold ph-clock" style="color:var(--text-muted);"></i>' : ''}</div>
+  `;
+  area.appendChild(div);
+  if (scroll) area.scrollTop = area.scrollHeight;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Auto-resize textarea ──────────────────────────────────────────────────
+const ta = document.getElementById('chat-input-text');
+if (ta) {
+  ta.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+}
+
+// ── Poll for new inbound messages every 5s ────────────────────────────────
+if (CONV_ID) {
+  setInterval(async () => {
+    try {
+      const res = await fetch(`/messaging/api/messages/${CONV_ID}/?since=${lastMsgId}`);
+      const data = await res.json();
+      if (data.messages && data.messages.length) {
+        data.messages.forEach(m => {
+          if (m.direction === 'inbound') {
+            appendMessage(m, true);
+          }
+          lastMsgId = Math.max(lastMsgId, m.id);
+        });
+      }
+    } catch(e) {}
+  }, 5000);
+
+  // Scroll to bottom on load
+  const area = document.getElementById('chat-messages-area');
+  if (area) area.scrollTop = area.scrollHeight;
+}
+
+// ── Poll unread count for nav badge ──────────────────────────────────────
+async function pollUnread() {
+  try {
+    const res = await fetch('/messaging/api/unread/');
+    const data = await res.json();
+    const badge = document.getElementById('unread-msg-count');
+    const dot = document.getElementById('topbar-msg-dot');
+    if (badge) {
+      if (data.unread > 0) {
+        badge.style.display = 'inline';
+        badge.textContent = data.unread;
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    if (dot) dot.style.display = data.unread > 0 ? 'block' : 'none';
+  } catch(e) {}
+}
+setInterval(pollUnread, 10000);
+pollUnread();
+
+// ── Client-side search filter ─────────────────────────────────────────────
+function filterConversations(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.conv-item').forEach(item => {
+    const name = item.dataset.name || '';
+    item.style.display = name.includes(q) ? 'flex' : 'none';
+  });
+}
+
+// ── CRM Drawer & Quick Order Helpers ──────────────────────────────────────
+function toggleCrmDrawer() {
+  const drawer = document.getElementById('inbox-crm-drawer');
+  if (drawer) {
+    const isHidden = drawer.style.display === 'none';
+    drawer.style.display = isHidden ? 'flex' : 'none';
+  }
+}
+
+function updateInboxPrice(selectEl) {
+  const opt = selectEl.options[selectEl.selectedIndex];
+  const price = opt.getAttribute('data-price') || '0.00';
+  document.getElementById('inbox-product-price').value = price;
+  recalcInboxTotal();
+}
+
+function recalcInboxTotal() {
+  const qty = parseFloat(document.getElementById('inbox-product-qty').value) || 0;
+  const price = parseFloat(document.getElementById('inbox-product-price').value) || 0;
+  const total = qty * price;
+  document.getElementById('inbox-total-display').innerText = '৳ ' + total.toFixed(2);
+}
+</script>
+{% endblock %}

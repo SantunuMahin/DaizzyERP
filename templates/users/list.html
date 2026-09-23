@@ -1,0 +1,58 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Staff Accounts · {{ STORE_NAME }}{% endblock %}
+{% block page_heading %}Staff & Role Administration{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+    <form method="get" action="" style="display: flex; gap: 10px; flex: 1;">
+      <input type="text" name="q" value="{{ request.GET.q|default:'' }}" class="form-input" placeholder="Search staff username or email..." style="max-width: 320px;">
+      <button type="submit" class="btn btn-outline btn-sm">Search</button>
+    </form>
+    <a href="{% url 'users:create' %}" class="btn btn-primary btn-sm">
+      <i class="ph-bold ph-user-plus"></i> New Staff Account
+    </a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Email</th>
+          <th>Designated Role</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users_list %}
+        <tr>
+          <td>
+            <strong>{{ u.get_full_name|default:u.username }}</strong>
+            <div style="font-size: 0.72rem; color: var(--slate-400);">@{{ u.username }}</div>
+          </td>
+          <td>{{ u.email }}</td>
+          <td>
+            <span class="badge badge-primary">{{ u.get_role_display }}</span>
+          </td>
+          <td>{{ u.phone_number|default:"—" }}</td>
+          <td>
+            {% if u.is_active %}
+              <span class="badge badge-success">Active</span>
+            {% else %}
+              <span class="badge badge-neutral">Disabled</span>
+            {% endif %}
+          </td>
+          <td style="font-size: 0.8rem; color: var(--slate-500);">{{ u.created_at|date:"d M Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align: center; color: var(--slate-400); padding: 36px;">No users found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

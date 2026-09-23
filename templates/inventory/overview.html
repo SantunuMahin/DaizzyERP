@@ -1,0 +1,85 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Stock Overview · {{ STORE_NAME|default:"Daizzy.online" }}{% endblock %}
+{% block page_heading %}Inventory Stock Overview{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <a href="{% url 'inventory:overview' %}" class="btn {% if not request.GET.status %}btn-primary{% else %}btn-outline{% endif %} btn-sm">All Stock</a>
+      <a href="{% url 'inventory:overview' %}?status=low" class="btn {% if request.GET.status == 'low' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Low Stock Alerts</a>
+      <a href="{% url 'inventory:overview' %}?status=out" class="btn {% if request.GET.status == 'out' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">Out of Stock</a>
+    </div>
+
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+      <form method="get" action="" style="display: flex; gap: 8px; flex: 1; min-width: 220px;">
+        <input type="text" name="q" value="{{ request.GET.q|default:'' }}" class="form-input" placeholder="Search product / barcode..." style="flex: 1; min-width: 160px;">
+        <button type="submit" class="btn btn-outline btn-sm">Search</button>
+      </form>
+      <a href="{% url 'inventory:adjust' %}" class="btn btn-primary btn-sm">
+        <i class="ph-bold ph-arrows-clockwise"></i> Adjust Stock
+      </a>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Product Name</th>
+          <th>Barcode</th>
+          <th>Category</th>
+          <th>Unit Price</th>
+          <th>Available Stock</th>
+          <th>Valuation</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in inventories %}
+        <tr>
+          <td>
+            <strong><a href="{% url 'products:detail' inv.product.pk %}">{{ inv.product.name }}</a></strong>
+            <div style="font-size: 0.74rem; color: var(--text-muted); font-family: var(--font-mono);">SKU: {{ inv.product.sku }}</div>
+          </td>
+          <td><code style="color: var(--brand-primary); font-weight: 700; font-family: var(--font-mono); font-size: 0.84rem;">{{ inv.product.barcode }}</code></td>
+          <td>
+            <span class="badge badge-brand">{{ inv.product.category.name|default:"—" }}</span>
+          </td>
+          <td style="font-family: var(--font-mono); font-weight: 600;">{{ CURRENCY_SYMBOL }} {{ inv.product.selling_price|intcomma }}</td>
+          <td>
+            {% if inv.quantity <= 0 %}
+              <span class="badge badge-danger">Out of Stock (0)</span>
+            {% elif inv.quantity <= inv.product.minimum_stock_level %}
+              <span class="badge badge-warning">Low: {{ inv.quantity }} {{ inv.product.unit }}</span>
+            {% else %}
+              <span class="badge badge-success">{{ inv.quantity }} {{ inv.product.unit }}</span>
+            {% endif %}
+          </td>
+          <td style="font-weight: 700; font-family: var(--font-mono); color: var(--brand-ink);">
+            {{ CURRENCY_SYMBOL }} {% widthratio inv.product.selling_price 1 inv.quantity %}
+          </td>
+          <td style="text-align: right; white-space: nowrap;">
+            <a href="{% url 'inventory:adjust' %}?product={{ inv.product.pk }}" class="btn btn-outline btn-sm" title="Adjust Stock" style="padding: 6px 10px;">
+              <i class="ph-bold ph-arrows-clockwise"></i>
+            </a>
+            <a href="{% url 'inventory:transactions' %}?product={{ inv.product.pk }}" class="btn btn-outline btn-sm" title="Movement History" style="padding: 6px 10px;">
+              <i class="ph-bold ph-list-dashes"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 48px 16px;">
+            <i class="ph-bold ph-archive" style="font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 8px;"></i>
+            No inventory items matching this filter.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

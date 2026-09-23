@@ -1,0 +1,40 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Audit Logs · {{ STORE_NAME }}{% endblock %}
+{% block page_heading %}Security & Compliance Audit Trail{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Immutable System Activity Log</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Action</th>
+          <th>Target Entity</th>
+          <th>Entity ID</th>
+          <th>Operator</th>
+          <th>IP Address</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in audit_logs %}
+        <tr>
+          <td style="font-size: 0.8rem; white-space: nowrap;">{{ log.created_at|date:"d M Y, H:i:s" }}</td>
+          <td><span class="badge badge-primary">{{ log.action }}</span></td>
+          <td><code>{{ log.entity }}</code></td>
+          <td>#{{ log.entity_id|default:"—" }}</td>
+          <td>{{ log.user.username|default:"System" }}</td>
+          <td style="font-size: 0.8rem; font-family: var(--font-mono); color: var(--slate-500);">{{ log.ip_address|default:"127.0.0.1" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align: center; color: var(--slate-400); padding: 36px;">No audit events recorded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

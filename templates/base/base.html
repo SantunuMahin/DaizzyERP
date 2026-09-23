@@ -1,0 +1,278 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>{% block title %}{{ page_title|default:"Daizzy ERP" }}{% endblock %} · {{ STORE_NAME|default:"Daizzy.online" }}</title>
+  <meta name="description" content="Daizzy ERP — One System. Total Control. Smart business management for {{ STORE_NAME|default:'Daizzy.online' }}.">
+
+  <!-- Daizzy Brand Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%237C3AED'/><stop offset='100%25' stop-color='%2306B6D4'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23g)'/><text x='50' y='68' text-anchor='middle' font-size='58' font-weight='bold' fill='white' font-family='serif'>D</text></svg>">
+  <meta name="theme-color" content="#7C3AED">
+
+  <!-- Icons & CSS -->
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <!-- Off-Canvas Sidebar Backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <div class="app-container">
+    <!-- ── SIDEBAR ─────────────────────────────────────────────────────── -->
+    <aside class="app-sidebar no-print" id="app-sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-wrapper">
+          <div class="sidebar-brand-icon">D</div>
+          <div class="sidebar-brand-text">
+            <h1>{{ STORE_NAME|default:"Daizzy" }}</h1>
+            <p>ERP · Total Control</p>
+          </div>
+        </div>
+        <button type="button" class="sidebar-close-btn" id="btn-close-sidebar" aria-label="Close navigation">
+          <i class="ph-bold ph-x"></i>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- Dashboard -->
+        <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+          <i class="ph-bold ph-squares-four nav-icon"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <!-- POS Terminal -->
+        <a href="{% url 'pos:terminal' %}" class="nav-link nav-link-pos-badge">
+          <i class="ph-bold ph-lightning nav-icon"></i>
+          <span>POS Terminal</span>
+        </a>
+
+        <!-- Messages Hub -->
+        <a href="{% url 'messaging:inbox' %}" class="nav-link nav-link-messaging {% if 'messaging' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-chats-circle nav-icon"></i>
+          <span>Messages Hub</span>
+          <span class="nav-badge" id="unread-msg-count" style="display:none;">0</span>
+        </a>
+
+        <!-- Contacts -->
+        <a href="{% url 'messaging:contacts' %}" class="nav-link {% if 'contacts' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-address-book nav-icon"></i>
+          <span>Contacts CRM</span>
+        </a>
+
+        <!-- Auto-Messaging Engine -->
+        <a href="{% url 'messaging:auto_rules' %}" class="nav-link {% if 'auto-rules' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-robot nav-icon"></i>
+          <span>Auto-Messaging</span>
+        </a>
+
+        <!-- Catalog & Stock -->
+        <div class="nav-section-title">Catalog &amp; Stock</div>
+        <a href="{% url 'products:list' %}" class="nav-link {% if 'products' in request.path and 'category' not in request.path %}active{% endif %}">
+          <i class="ph-bold ph-tag nav-icon"></i>
+          <span>Products Catalog</span>
+        </a>
+        <a href="{% url 'inventory:overview' %}" class="nav-link {% if 'inventory' in request.path and 'transactions' not in request.path and 'adjust' not in request.path %}active{% endif %}">
+          <i class="ph-bold ph-archive nav-icon"></i>
+          <span>Stock Overview</span>
+        </a>
+        <a href="{% url 'inventory:adjust' %}" class="nav-link {% if 'inventory/adjust' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-arrows-clockwise nav-icon"></i>
+          <span>Stock Adjustment</span>
+        </a>
+        <a href="{% url 'inventory:transactions' %}" class="nav-link {% if 'transactions' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-list-dashes nav-icon"></i>
+          <span>Movement Ledger</span>
+        </a>
+
+        <!-- Barcode -->
+        <div class="nav-section-title">Barcode Center</div>
+        <a href="{% url 'barcode:print_labels' %}" class="nav-link {% if 'barcode' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-barcode nav-icon"></i>
+          <span>Print Labels</span>
+        </a>
+
+        <!-- Commercial -->
+        <div class="nav-section-title">Commercial &amp; Orders</div>
+        <a href="{% url 'sales:list' %}" class="nav-link {% if 'sales' in request.path and 'returns' not in request.path and 'courier' not in request.path %}active{% endif %}">
+          <i class="ph-bold ph-receipt nav-icon"></i>
+          <span>Sales Orders</span>
+        </a>
+        <a href="{% url 'sales:courier_settings' %}" class="nav-link {% if 'courier' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-truck nav-icon"></i>
+          <span>Steadfast Courier</span>
+        </a>
+        <a href="{% url 'sales:returns' %}" class="nav-link {% if 'returns' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-arrow-u-up-left nav-icon"></i>
+          <span>Returns</span>
+        </a>
+        <a href="{% url 'invoices:list' %}" class="nav-link {% if 'invoices' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-files nav-icon"></i>
+          <span>Invoices</span>
+        </a>
+
+        <!-- Analytics -->
+        {% if IS_MANAGER_ROLE %}
+        <div class="nav-section-title">Business Intelligence</div>
+        <a href="{% url 'reports:sales' %}" class="nav-link {% if 'reports/sales' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-chart-line-up nav-icon"></i>
+          <span>Sales Analytics</span>
+        </a>
+        <a href="{% url 'reports:inventory' %}" class="nav-link {% if 'reports/inventory' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-chart-pie-slice nav-icon"></i>
+          <span>Inventory Reports</span>
+        </a>
+        {% endif %}
+
+        <!-- Administration -->
+        {% if IS_ADMIN_ROLE %}
+        <div class="nav-section-title">Administration</div>
+        <a href="{% url 'settings_app:index' %}" class="nav-link {% if 'settings' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-gear-six nav-icon"></i>
+          <span>Store Settings</span>
+        </a>
+        <a href="{% url 'users:list' %}" class="nav-link {% if 'users' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-users nav-icon"></i>
+          <span>Staff Accounts</span>
+        </a>
+        <a href="{% url 'audit:list' %}" class="nav-link {% if 'audit' in request.path %}active{% endif %}">
+          <i class="ph-bold ph-shield-check nav-icon"></i>
+          <span>Audit Logs</span>
+        </a>
+        {% endif %}
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <div class="user-avatar">{{ request.user.username|make_list|first|upper }}</div>
+          <div class="user-info">
+            <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+            <div class="user-role">{{ request.user.get_role_display|default:USER_ROLE }}</div>
+          </div>
+        </div>
+        <form method="post" action="{% url 'users:logout' %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" title="Logout" style="background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-muted); cursor: pointer; font-size: 1.1rem; padding: 7px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; transition: var(--transition);" onmouseover="this.style.color='var(--danger-500)'" onmouseout="this.style.color='var(--text-muted)'">
+            <i class="ph-bold ph-sign-out"></i>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- ── MAIN CONTENT ────────────────────────────────────────────────── -->
+    <div class="app-main">
+      <!-- Topbar -->
+      <header class="app-topbar no-print">
+        <div class="topbar-left">
+          <button type="button" class="btn-mobile-menu" id="btn-toggle-sidebar" aria-label="Toggle navigation">
+            <i class="ph-bold ph-list"></i>
+          </button>
+          <h2 class="topbar-title">{% block page_heading %}{{ page_title|default:"Dashboard" }}{% endblock %}</h2>
+          <span class="topbar-brand-pill">
+            <i class="ph-bold ph-sparkle"></i> Daizzy ERP
+          </span>
+        </div>
+        <div class="topbar-right">
+          <!-- Messages shortcut -->
+          <a href="{% url 'messaging:inbox' %}" class="topbar-notif-btn" title="Messages Hub" id="topbar-msg-btn">
+            <i class="ph-bold ph-chats"></i>
+            <span class="topbar-notif-dot" id="topbar-msg-dot" style="display:none;"></span>
+          </a>
+          <!-- Notifications bell -->
+          <button type="button" class="topbar-notif-btn" id="topbar-notif-btn" title="Notifications">
+            <i class="ph-bold ph-bell"></i>
+            <span class="topbar-notif-dot"></span>
+          </button>
+          <!-- POS quick launch -->
+          <a href="{% url 'pos:terminal' %}" class="btn-pos-quick" title="Launch POS Screen">
+            <i class="ph-bold ph-lightning"></i>
+            <span>POS Screen</span>
+          </a>
+          <!-- New Product -->
+          <a href="{% url 'products:create' %}" class="btn btn-outline btn-sm">
+            <i class="ph-bold ph-plus"></i>
+            <span>New Product</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <main class="app-content">
+        {% if messages %}
+          <div class="messages-container" style="margin-bottom: 20px;">
+            {% for message in messages %}
+              <div class="toast {% if message.tags %}{{ message.tags }}{% else %}info{% endif %}" style="position: static; margin-bottom: 10px; width: 100%; max-width: 100%;">
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-bottom-nav no-print" aria-label="Mobile Bottom Navigation">
+    <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+      <i class="ph-bold ph-squares-four"></i>
+      <span>Dashboard</span>
+    </a>
+    <a href="{% url 'messaging:inbox' %}" class="mobile-nav-item {% if 'messaging' in request.path %}active{% endif %}">
+      <i class="ph-bold ph-chats-circle"></i>
+      <span>Messages</span>
+    </a>
+    <div class="mobile-nav-item-pos">
+      <a href="{% url 'pos:terminal' %}" class="mobile-nav-pos-btn" title="Open POS Terminal">
+        <i class="ph-bold ph-lightning"></i>
+      </a>
+    </div>
+    <a href="{% url 'invoices:list' %}" class="mobile-nav-item {% if 'invoices' in request.path %}active{% endif %}">
+      <i class="ph-bold ph-files"></i>
+      <span>Invoices</span>
+    </a>
+    <button type="button" class="mobile-nav-item" id="btn-mobile-nav-menu">
+      <i class="ph-bold ph-list"></i>
+      <span>Menu</span>
+    </button>
+  </nav>
+
+  <div id="toast-container"></div>
+
+  <script src="{% static 'js/core.js' %}"></script>
+  <script>
+    // Sidebar toggle
+    const sidebar = document.getElementById('app-sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const btnOpen = document.getElementById('btn-toggle-sidebar');
+    const btnClose = document.getElementById('btn-close-sidebar');
+    const btnMenu = document.getElementById('btn-mobile-nav-menu');
+
+    function openSidebar() {
+      sidebar.classList.add('open');
+      backdrop.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      backdrop.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    if (btnOpen) btnOpen.addEventListener('click', openSidebar);
+    if (btnClose) btnClose.addEventListener('click', closeSidebar);
+    if (backdrop) backdrop.addEventListener('click', closeSidebar);
+    if (btnMenu) btnMenu.addEventListener('click', openSidebar);
+
+    // Auto-dismiss flash messages
+    document.querySelectorAll('.toast').forEach(t => {
+      setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(-8px)'; setTimeout(() => t.remove(), 300); }, 4000);
+    });
+  </script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
